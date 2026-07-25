@@ -47,7 +47,7 @@
         return element !== loader && element.tagName !== 'SCRIPT';
       })
     : [];
-  const duration = 8800;
+  const duration = 6800;
   const failsafeDuration = 10000;
   const blessingInterval = 2400;
   const startTime = performance.now();
