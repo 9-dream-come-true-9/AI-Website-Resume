@@ -745,6 +745,48 @@ html.dark .portfolio-link {
     -2.1rem 2.1rem 0 -0.7rem rgba(144, 100, 245, 0.1);
 }
 
+html.js-anim .hero-summary-step {
+  opacity: 0;
+  -webkit-clip-path: inset(0 100% 0 0);
+  clip-path: inset(0 100% 0 0);
+  transform: translateX(-0.75rem);
+  will-change: opacity, clip-path, transform;
+  transition-property: opacity, clip-path, transform;
+  transition-duration: 0.9s;
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html.js-anim .hero-summary-step.is-visible {
+  opacity: 1;
+  -webkit-clip-path: inset(0 0 0 0);
+  clip-path: inset(0 0 0 0);
+  transform: translateX(0);
+}
+
+html.js-anim .hero-summary-step-1 {
+  transition-delay: 0.12s;
+}
+
+html.js-anim .hero-summary-step-2 {
+  transition-delay: 0.3s;
+}
+
+html.js-anim .hero-summary-step-3 {
+  transition-delay: 0.48s;
+}
+
+html.js-anim .hero-summary-step-4 {
+  transition-delay: 0.66s;
+}
+
+html.js-anim .hero-summary-step-5 {
+  transition-delay: 0.84s;
+}
+
+html.js-anim .hero-summary-step-6 {
+  transition-delay: 1.02s;
+}
+
 .hero-summary-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -894,6 +936,10 @@ html.dark .hero-summary-card {
     0 22px 52px -28px rgba(0, 0, 0, 0.62),
     0 34px 88px -46px rgba(144, 100, 245, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html.dark .hero-summary-card::after {
+  opacity: 0.56;
 }
 
 html.dark .hero-summary-result {
@@ -1362,20 +1408,25 @@ html.js-anim .hero-copy-step-13 {
   transition-delay: 2.1s;
 }
 
-html.hero-motion-done .hero-copy-step {
+html.hero-motion-done .hero-copy-step,
+html.hero-motion-done .hero-summary-step {
   transition-delay: 0s;
+  will-change: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html.js-anim .reveal,
   html.js-anim .text-reveal,
   html.js-anim .hero-copy-step,
+  html.js-anim .hero-summary-step,
   .hero-chat-card {
     opacity: 1 !important;
     filter: none !important;
     transition: none !important;
     animation: none !important;
     transform: none !important;
+    -webkit-clip-path: inset(0 0 0 0) !important;
+    clip-path: inset(0 0 0 0) !important;
   }
 
   .text-gradient-flow,

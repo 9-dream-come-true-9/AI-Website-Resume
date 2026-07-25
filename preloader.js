@@ -179,19 +179,9 @@
     finish(true);
   }, failsafeDuration);
 
-  if (video && typeof window.requestAnimationFrame === 'function') {
-    window.requestAnimationFrame(function () {
-      window.requestAnimationFrame(function () {
-        video.preload = 'auto';
-        video.setAttribute('preload', 'auto');
-        try {
-          video.load();
-        } catch (error) {
-          // The gradient background remains visible if media loading is unavailable.
-        }
-      });
-    });
-  } else if (video) {
+  function startVideoPreload() {
+    if (!video) return;
+
     video.preload = 'auto';
     video.setAttribute('preload', 'auto');
     try {
@@ -199,5 +189,19 @@
     } catch (error) {
       // The gradient background remains visible if media loading is unavailable.
     }
+  }
+
+  if (video && typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(startVideoPreload, { timeout: 800 });
+        } else {
+          window.setTimeout(startVideoPreload, 320);
+        }
+      });
+    });
+  } else if (video) {
+    window.setTimeout(startVideoPreload, 320);
   }
 })();

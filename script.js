@@ -46,7 +46,7 @@
   }
 
   function initHeroCopySequence() {
-    const heroCopySteps = document.querySelectorAll('.hero-copy-step');
+    const heroCopySteps = document.querySelectorAll('.hero-copy-step, .hero-summary-step');
     if (!heroCopySteps.length) return;
 
     const showHeroCopy = function () {

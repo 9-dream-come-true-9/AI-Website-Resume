@@ -124,15 +124,15 @@
       height: 100%;
       border-radius: inherit;
       background: linear-gradient(90deg, #7c4dff, #c663ee, #ed8fc5);
-      transform: scaleX(0.08);
-      transform-origin: left center;
+      transform: translate3d(-92%, 0, 0);
+      backface-visibility: hidden;
       will-change: transform;
-      animation: sitePreloaderProgress 8.8s cubic-bezier(0.2, 0.72, 0.24, 1) forwards;
+      animation: sitePreloaderProgress 6.8s linear forwards;
     }
 
     .site-preloader.is-ready .site-preloader__progress-fill {
       animation: none;
-      transform: scaleX(1);
+      transform: translate3d(0, 0, 0);
       transition: none;
     }
 
@@ -175,8 +175,8 @@
     }
 
     @keyframes sitePreloaderProgress {
-      from { transform: scaleX(0.08); }
-      to { transform: scaleX(1); }
+      from { transform: translate3d(-92%, 0, 0); }
+      to { transform: translate3d(0, 0, 0); }
     }
 
     @media (max-width: 32rem) {
@@ -205,18 +205,18 @@
       }
 
       .site-preloader__progress-fill {
-        transform: scaleX(0.68);
+        transform: translate3d(-32%, 0, 0);
       }
 
       .site-preloader.is-ready .site-preloader__progress-fill {
-        transform: scaleX(1);
+        transform: translate3d(0, 0, 0);
       }
     }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link id="site-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" media="print" />
-  <link id="site-styles" rel="stylesheet" href="style.css?v=preloader-1" media="print" />
+  <link id="site-styles" rel="stylesheet" href="style.css?v=summary-motion-4" media="print" />
   <noscript>
     <style>
       html.preloading,
@@ -229,9 +229,9 @@
       }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=preloader-1" />
+    <link rel="stylesheet" href="style.css?v=summary-motion-4" />
   </noscript>
-  <script src="preloader.js?v=preloader-2" defer></script>
+  <script src="preloader.js?v=preloader-3" defer></script>
 </head>
 <body>
   <div id="site-preloader" class="site-preloader" role="status" aria-live="polite" aria-label="网站正在加载">
@@ -332,11 +332,11 @@
           </div>
           <div class="hero-visual">
             <aside class="hero-summary-card" aria-labelledby="hero-summary-title">
-              <p class="hero-summary-eyebrow">网站核心速览</p>
-              <h2 class="hero-summary-title" id="hero-summary-title">把 AI 能力，做成真实业务结果</h2>
-              <p class="hero-summary-intro">从需求调研、产品方案、模型与 Prompt，到数据复盘与持续迭代，覆盖 AI 产品从 0 到 1 的完整落地过程。</p>
+              <p class="hero-summary-eyebrow hero-summary-step hero-summary-step-1">网站核心速览</p>
+              <h2 class="hero-summary-title hero-summary-step hero-summary-step-2" id="hero-summary-title">把 AI 能力，做成真实业务结果</h2>
+              <p class="hero-summary-intro hero-summary-step hero-summary-step-3">从需求调研、产品方案、模型与 Prompt，到数据复盘与持续迭代，覆盖 AI 产品从 0 到 1 的完整落地过程。</p>
 
-              <dl class="hero-summary-results" aria-label="核心成果">
+              <dl class="hero-summary-results hero-summary-step hero-summary-step-4" aria-label="核心成果">
                 <div class="hero-summary-result">
                   <dt class="hero-summary-result-label">个性化 Push 点击率</dt>
                   <dd class="hero-summary-result-value">2.3% <span aria-hidden="true">→</span> 7.8%</dd>
@@ -347,9 +347,9 @@
                 </div>
               </dl>
 
-              <p class="hero-summary-directions">AI 陪伴 · RAG 客服 · AI 营销 · Vibe Coding</p>
+              <p class="hero-summary-directions hero-summary-step hero-summary-step-5">AI 陪伴 · RAG 客服 · AI 营销 · Vibe Coding</p>
 
-              <div class="hero-summary-assistant">
+              <div class="hero-summary-assistant hero-summary-step hero-summary-step-6">
                 <p>想按岗位快速了解我？AI 求职小杰君可以介绍我的能力、项目经历和岗位匹配度。</p>
                 <button class="hero-summary-chat" type="button" data-assistant-open aria-controls="assistant-panel">
                   和 AI 小杰君聊聊
@@ -591,6 +591,6 @@
     </button>
   </div>
 
-  <script src="script.js?v=nav-chat-open-1"></script>
+  <script src="script.js?v=summary-reveal-1"></script>
 </body>
 </html>
