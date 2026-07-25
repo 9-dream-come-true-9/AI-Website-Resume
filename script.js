@@ -26,20 +26,6 @@
 
   initVideoBackgroundPlayback();
 
-  function initPortfolioImageLinks() {
-    document.querySelectorAll('[data-portfolio-image-link]').forEach(function (link) {
-      link.addEventListener('click', function (event) {
-        const href = link.getAttribute('href');
-        if (!href) return;
-        event.preventDefault();
-        const opened = window.open(href, '_blank', 'noopener,noreferrer');
-        if (!opened) window.location.href = href;
-      });
-    });
-  }
-
-  initPortfolioImageLinks();
-
   function initHeroCopySequence() {
     const heroCopySteps = document.querySelectorAll('.hero-copy-step');
     if (!heroCopySteps.length) return;
