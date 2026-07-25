@@ -1,6 +1,18 @@
 (function () {
   'use strict';
 
+  function whenSiteReady(callback) {
+    if (
+      document.documentElement.classList.contains('site-ready') ||
+      !document.getElementById('site-preloader')
+    ) {
+      callback();
+      return;
+    }
+
+    document.addEventListener('site:ready', callback, { once: true });
+  }
+
   function initVideoBackgroundPlayback() {
     const video = document.querySelector('.site-video-bg-media');
     if (!video) return;
@@ -9,7 +21,13 @@
     video.muted = true;
     video.playsInline = true;
 
+    function showVideo() {
+      if (video.classList.contains('is-preloaded')) return;
+      video.classList.add('is-ready');
+    }
+
     function playVideo() {
+      if (video.readyState >= 2) showVideo();
       const playResult = video.play();
       if (playResult && typeof playResult.catch === 'function') {
         playResult.catch(function () {});
@@ -20,11 +38,12 @@
       if (!document.hidden && video.paused) playVideo();
     });
 
+    if (video.readyState >= 2) showVideo();
+    else video.addEventListener('loadeddata', showVideo, { once: true });
+
     if (video.readyState >= 1) playVideo();
     else video.addEventListener('loadedmetadata', playVideo, { once: true });
   }
-
-  initVideoBackgroundPlayback();
 
   function initPortfolioImageLinks() {
     document.querySelectorAll('[data-portfolio-image-link]').forEach(function (link) {
@@ -62,6 +81,9 @@
       document.documentElement.classList.add('hero-motion-done');
     }, 3300);
   }
+
+  function initPageExperience() {
+  initVideoBackgroundPlayback();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-anim');
@@ -144,6 +166,9 @@
       }
     });
   });
+  }
+
+  whenSiteReady(initPageExperience);
 })();
 
 (function () {

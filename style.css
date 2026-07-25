@@ -73,6 +73,11 @@ body {
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
+  background: linear-gradient(180deg, #d8ebee, #b7d9df);
+}
+
+html.dark .site-video-bg {
+  background: linear-gradient(180deg, #173038, #10252c);
 }
 
 .site-video-bg-media {
@@ -82,8 +87,18 @@ body {
   height: 100%;
   object-fit: cover;
   object-position: center center;
-  opacity: 1;
+  opacity: 0;
   transform: translateZ(0);
+  transition: opacity 0.45s ease;
+}
+
+.site-video-bg-media.is-ready {
+  opacity: 1;
+}
+
+.site-video-bg-media.is-preloaded {
+  opacity: 1;
+  transition: none;
 }
 
 .site-header,
@@ -1225,8 +1240,10 @@ html.hero-motion-done .hero-copy-step {
   }
 
   .text-gradient-flow,
-  .text-sheen::after {
+  .text-sheen::after,
+  .site-video-bg-media {
     animation: none !important;
+    transition: none !important;
   }
 }
 
