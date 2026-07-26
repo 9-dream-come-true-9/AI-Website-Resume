@@ -505,18 +505,18 @@ html.dark .portfolio-note-bubble {
 
 @media (min-width: 64rem) {
   .header-inner {
-    height: 6.25rem;
+    height: 4.75rem;
   }
 
   .portfolio-guidance-header > .portfolio-link {
-    min-height: 5.25rem;
-    padding: 0.75rem 1.75rem;
-    border-width: 2px;
-    font-size: 1.75rem;
+    min-height: 3.9375rem;
+    padding: 0.5625rem 1.3125rem;
+    border-width: 1.5px;
+    font-size: 1.3125rem;
   }
 
   .portfolio-guidance-header .portfolio-note-arrow {
-    margin-right: 7rem;
+    margin-right: 5rem;
   }
 }
 
@@ -2560,7 +2560,12 @@ html.dark .assistant-bubble.is-markdown a {
   }
 
   .assistant-callout {
-    display: none;
+    display: block;
+    width: min(14rem, calc(100% - var(--assistant-icon-size) - 0.625rem));
+    min-width: 0;
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 
   .assistant-launcher {
