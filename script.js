@@ -68,8 +68,68 @@
     }, 3300);
   }
 
+  function initPortfolioGuidance() {
+    const guidanceItems = Array.from(document.querySelectorAll('[data-portfolio-guidance]'));
+    if (!guidanceItems.length) return;
+
+    let openItem = null;
+
+    function closeGuidance(item, options) {
+      if (!item) return;
+
+      const trigger = item.querySelector('[data-portfolio-trigger]');
+      const note = item.querySelector('[data-portfolio-note]');
+
+      item.classList.remove('is-open');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      if (note) note.setAttribute('aria-hidden', 'true');
+      if (openItem === item) openItem = null;
+
+      if (options && options.restoreFocus && trigger) {
+        trigger.focus();
+      }
+    }
+
+    function openGuidance(item) {
+      if (openItem && openItem !== item) {
+        closeGuidance(openItem);
+      }
+
+      const trigger = item.querySelector('[data-portfolio-trigger]');
+      const note = item.querySelector('[data-portfolio-note]');
+
+      item.classList.add('is-open');
+      if (trigger) trigger.setAttribute('aria-expanded', 'true');
+      if (note) note.setAttribute('aria-hidden', 'false');
+      openItem = item;
+    }
+
+    guidanceItems.forEach(function (item) {
+      const trigger = item.querySelector('[data-portfolio-trigger]');
+      if (!trigger) return;
+
+      trigger.addEventListener('click', function (event) {
+        event.preventDefault();
+        openGuidance(item);
+      });
+    });
+
+    document.addEventListener('click', function (event) {
+      if (openItem && !openItem.contains(event.target)) {
+        closeGuidance(openItem);
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && openItem) {
+        closeGuidance(openItem, { restoreFocus: true });
+      }
+    });
+  }
+
   function initPageExperience() {
   initVideoBackgroundPlayback();
+  initPortfolioGuidance();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-anim');
