@@ -59,6 +59,13 @@ module.exports = async function handler(req, res) {
   const apiBase = String(process.env.AI_API_BASE || 'https://api.deepseek.com').replace(/\/+$/, '');
   const model = process.env.AI_MODEL || 'deepseek-chat';
   const history = Array.isArray(req.body.history) ? req.body.history.slice(-8) : [];
+  const upstreamController = new AbortController();
+  const abortUpstream = function () {
+    if (!res.writableEnded && !upstreamController.signal.aborted) {
+      upstreamController.abort();
+    }
+  };
+  res.on('close', abortUpstream);
   const messages = [
     {
       role: 'system',
@@ -87,6 +94,7 @@ module.exports = async function handler(req, res) {
   try {
     const upstream = await fetch(`${apiBase}/chat/completions`, {
       method: 'POST',
+      signal: upstreamController.signal,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
@@ -122,12 +130,17 @@ module.exports = async function handler(req, res) {
     writeStreamEvent(res, 'done', { answer: answer });
     res.end();
   } catch (error) {
-    if (res.headersSent) {
+    if (upstreamController.signal.aborted || res.destroyed) {
+      return;
+    }
+    if (res.headersSent && !res.writableEnded) {
       writeStreamEvent(res, 'error', { error: 'AI service unavailable' });
       res.end();
-    } else {
+    } else if (!res.headersSent) {
       res.status(502).json({ error: 'AI service unavailable' });
     }
+  } finally {
+    res.removeListener('close', abortUpstream);
   }
 };
 
@@ -173,6 +186,7 @@ async function streamModelAnswer(upstream, res) {
 }
 
 function writeStreamEvent(res, event, payload) {
+  if (res.destroyed || res.writableEnded) return;
   res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
   if (typeof res.flush === 'function') res.flush();
 }

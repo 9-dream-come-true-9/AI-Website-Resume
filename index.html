@@ -216,7 +216,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link id="site-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" media="print" />
-  <link id="site-styles" rel="stylesheet" href="style.css?v=hero-eyebrow-gap-83" media="print" />
+  <link id="site-styles" rel="stylesheet" href="style.css?v=assistant-stop-84" media="print" />
   <noscript>
     <style>
       html.preloading,
@@ -229,7 +229,7 @@
       }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=hero-eyebrow-gap-83" />
+    <link rel="stylesheet" href="style.css?v=assistant-stop-84" />
   </noscript>
   <script src="preloader.js?v=preloader-3" defer></script>
 </head>
@@ -620,11 +620,14 @@
       <form class="assistant-form" data-assistant-form>
         <label class="sr-only" for="assistant-input">向AI求职小杰君提问</label>
         <textarea id="assistant-input" class="assistant-input" data-assistant-input rows="1" placeholder="问作品、经历或 AI 产品能力"></textarea>
-        <button class="assistant-send" type="submit" data-assistant-send aria-label="发送问题">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M22 2 11 13"></path>
-            <path d="m22 2-7 20-4-9-9-4Z"></path>
-          </svg>
+        <button class="assistant-send" type="submit" data-assistant-send data-state="idle" aria-label="发送问题" title="发送问题">
+          <span class="assistant-send-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M22 2 11 13"></path>
+              <path d="m22 2-7 20-4-9-9-4Z"></path>
+            </svg>
+          </span>
+          <span class="assistant-stop-icon" aria-hidden="true"></span>
         </button>
       </form>
     </section>
@@ -654,6 +657,6 @@
     </button>
   </div>
 
-  <script src="script.js?v=portfolio-guidance-2"></script>
+  <script src="script.js?v=assistant-stop-3"></script>
 </body>
 </html>

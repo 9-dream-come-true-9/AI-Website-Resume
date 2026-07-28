@@ -257,8 +257,11 @@
   ];
   const localStore = getSafeStorage('localStorage');
   const sessionStore = getSafeStorage('sessionStorage');
+  const idleInputPlaceholder = input.getAttribute('placeholder') || '';
 
   let history = loadHistory();
+  let isResponding = false;
+  let activeRequestController = null;
 
   function loadHistory() {
     try {
@@ -368,7 +371,7 @@
   }
 
   function startInlineMessageEdit(wrap, bubble, actions, messageState) {
-    if (bubble.dataset.editing === 'true') return;
+    if (isResponding || bubble.dataset.editing === 'true') return;
 
     const originalText = messageState.text;
     bubble.dataset.editing = 'true';
@@ -401,6 +404,11 @@
     cancelBtn.classList.add('assistant-edit-action');
 
     function finishEdit(nextText) {
+      if (isResponding) {
+        textarea.focus();
+        return;
+      }
+
       const displayText = nextText.trim();
       if (!displayText) {
         textarea.focus();
@@ -455,6 +463,8 @@
   }
 
   async function regenerateFromEditedMessage(wrap, messageState, question) {
+    if (isResponding) return;
+
     let nextMessage = wrap.nextElementSibling;
     while (nextMessage) {
       const messageToRemove = nextMessage;
@@ -470,19 +480,8 @@
       saveHistory();
     }
 
-    sendBtn.disabled = true;
-    const thinking = appendMessage('bot', '正在整理回答…', {
-      thinking: true,
-      skipHistory: true
-    });
-
     const requestHistory = history.slice(0, -1).slice(-8);
-    const answer = await callModel(question, requestHistory);
-    thinking.remove();
-    appendMessage('bot', answer, {
-      skipHistory: isTemporaryAssistantError(answer)
-    });
-    sendBtn.disabled = false;
+    await runAssistantResponse(question, requestHistory);
   }
 
   function setActionFeedback(button, label) {
@@ -807,12 +806,43 @@
     }
   }
 
-  async function callModel(question, requestHistory, onStreamUpdate) {
+  function setResponding(nextState) {
+    isResponding = Boolean(nextState);
+    root.classList.toggle('is-responding', isResponding);
+    form.dataset.responding = isResponding ? 'true' : 'false';
+    sendBtn.dataset.state = isResponding ? 'responding' : 'idle';
+    sendBtn.type = isResponding ? 'button' : 'submit';
+    sendBtn.setAttribute('aria-label', isResponding ? '停止生成' : '发送问题');
+    sendBtn.title = isResponding ? '停止生成' : '发送问题';
+    input.readOnly = isResponding;
+    input.placeholder = isResponding ? 'AI 正在回答，可点击停止' : idleInputPlaceholder;
+    if (clearBtn) clearBtn.disabled = isResponding;
+    promptBtns.forEach(function (button) {
+      button.disabled = isResponding;
+    });
+  }
+
+  function stopActiveResponse() {
+    if (!isResponding || !activeRequestController || activeRequestController.signal.aborted) return;
+    sendBtn.setAttribute('aria-label', '正在停止生成');
+    sendBtn.title = '正在停止生成';
+    activeRequestController.abort();
+  }
+
+  function isAbortError(error, signal) {
+    return Boolean(
+      (signal && signal.aborted) ||
+      (error && (error.name === 'AbortError' || error.code === 20))
+    );
+  }
+
+  async function callModel(question, requestHistory, onStreamUpdate, signal) {
     const conversationHistory = Array.isArray(requestHistory) ? requestHistory : history.slice(-8);
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: signal,
         body: JSON.stringify({
           message: question,
           history: conversationHistory,
@@ -829,6 +859,7 @@
       const answer = stripModelThinking(parseModelResponse(payload)).trim();
       return answer || 'AI 服务暂时没有返回有效回答，请稍后再试。';
     } catch (error) {
+      if (isAbortError(error, signal)) throw error;
       return 'AI 服务暂时不可用，请稍后再试。';
     }
   }
@@ -880,16 +911,12 @@
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   }
 
-  async function ask(question) {
-    const text = question.trim();
-    if (!text) return;
+  async function runAssistantResponse(question, requestHistory) {
+    if (isResponding) return;
 
-    const requestHistory = history.slice(-8);
-    appendMessage('user', text);
-    input.value = '';
-    autoResizeInput();
-    sendBtn.disabled = true;
-
+    const requestController = new AbortController();
+    activeRequestController = requestController;
+    setResponding(true);
     const thinking = appendMessage('bot', '正在整理回答…', {
       thinking: true,
       skipHistory: true
@@ -897,32 +924,63 @@
 
     const bubble = thinking.querySelector('.assistant-bubble');
     let isStreaming = false;
-    const answer = await callModel(text, requestHistory, function (partialAnswer) {
-      const visibleAnswer = stripModelThinking(partialAnswer).trim();
-      if (!visibleAnswer) return;
-      if (!isStreaming) {
-        isStreaming = true;
-        delete thinking.dataset.thinking;
-        bubble.classList.add('is-markdown');
-      }
-      bubble.innerHTML = renderMarkdown(visibleAnswer);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    });
+    let streamedAnswer = '';
 
-    if (isStreaming) {
-      bubble.innerHTML = renderMarkdown(answer);
-      if (!isTemporaryAssistantError(answer)) {
-        history.push({ role: 'bot', text: answer });
-        saveHistory();
+    try {
+      const answer = await callModel(question, requestHistory, function (partialAnswer) {
+        const visibleAnswer = stripModelThinking(partialAnswer).trim();
+        if (!visibleAnswer || requestController.signal.aborted) return;
+        streamedAnswer = visibleAnswer;
+        if (!isStreaming) {
+          isStreaming = true;
+          delete thinking.dataset.thinking;
+          bubble.classList.add('is-markdown');
+        }
+        bubble.innerHTML = renderMarkdown(visibleAnswer);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }, requestController.signal);
+
+      if (isStreaming) {
+        bubble.innerHTML = renderMarkdown(answer);
+        if (!isTemporaryAssistantError(answer)) {
+          history.push({ role: 'bot', text: answer });
+          saveHistory();
+        }
+      } else {
+        thinking.remove();
+        appendMessage('bot', answer, {
+          skipHistory: isTemporaryAssistantError(answer)
+        });
       }
-    } else {
-      thinking.remove();
-      appendMessage('bot', answer, {
-        skipHistory: isTemporaryAssistantError(answer)
-      });
+    } catch (error) {
+      if (!isAbortError(error, requestController.signal)) {
+        thinking.remove();
+        appendMessage('bot', 'AI 服务暂时不可用，请稍后再试。', { skipHistory: true });
+      } else if (isStreaming && streamedAnswer) {
+        bubble.innerHTML = renderMarkdown(streamedAnswer);
+        history.push({ role: 'bot', text: streamedAnswer });
+        saveHistory();
+      } else {
+        thinking.remove();
+      }
+    } finally {
+      if (activeRequestController === requestController) {
+        activeRequestController = null;
+        setResponding(false);
+      }
+      if (root.classList.contains('is-open')) input.focus();
     }
-    sendBtn.disabled = false;
-    input.focus();
+  }
+
+  async function ask(question) {
+    const text = String(question || '').trim();
+    if (!text || isResponding) return;
+
+    const requestHistory = history.slice(-8);
+    appendMessage('user', text);
+    input.value = '';
+    autoResizeInput();
+    await runAssistantResponse(text, requestHistory);
   }
 
   toggleBtn.addEventListener('click', function () {
@@ -961,13 +1019,21 @@
   });
 
   clearBtn.addEventListener('click', function () {
+    if (isResponding) return;
     history = [];
     if (sessionStore) sessionStore.removeItem(storageKey);
     renderHistory();
   });
 
+  sendBtn.addEventListener('click', function (event) {
+    if (!isResponding) return;
+    event.preventDefault();
+    stopActiveResponse();
+  });
+
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    if (isResponding) return;
     ask(input.value);
   });
 
@@ -975,6 +1041,7 @@
   input.addEventListener('keydown', function (event) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
+      if (isResponding) return;
       if (form.requestSubmit) form.requestSubmit();
       else sendBtn.click();
     }
@@ -982,11 +1049,13 @@
 
   promptBtns.forEach(function (button) {
     button.addEventListener('click', function () {
+      if (isResponding) return;
       const prompt = button.getAttribute('data-assistant-prompt') || '';
       ask(prompt);
     });
   });
 
+  setResponding(false);
   setHidden(localStore ? localStore.getItem(hiddenStorageKey) === 'true' : false, { persist: false });
   renderHistory();
 })();

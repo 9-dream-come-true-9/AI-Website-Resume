@@ -2536,24 +2536,81 @@ html.dark .assistant-bubble.is-markdown a {
   box-shadow: 0 0 0 3px rgba(144, 100, 245, 0.12);
 }
 
+.assistant-input[readonly] {
+  cursor: default;
+  color: var(--color-ink-muted);
+  background: var(--color-bg-soft);
+}
+
 .assistant-send {
+  position: relative;
   width: 2.625rem;
   height: 2.625rem;
   flex: 0 0 auto;
   border: none;
-  border-radius: 0.875rem;
+  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   background: var(--gradient-accent);
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1), filter 150ms ease;
 }
 
-.assistant-send:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.04);
+.assistant-send-icon,
+.assistant-stop-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  transition:
+    opacity 140ms ease,
+    transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.assistant-send-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.assistant-stop-icon {
+  width: 0.6875rem;
+  height: 0.6875rem;
+  border-radius: 0.125rem;
+  background: currentColor;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+.assistant-send[data-state="responding"] .assistant-send-icon {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+.assistant-send[data-state="responding"] .assistant-stop-icon {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .assistant-send:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+  }
+}
+
+.assistant-send:active {
+  transform: scale(0.96);
+}
+
+.assistant-send:focus-visible {
+  outline: 3px solid rgba(144, 100, 245, 0.28);
+  outline-offset: 0.2rem;
 }
 
 .assistant-send:disabled {
@@ -2563,10 +2620,21 @@ html.dark .assistant-bubble.is-markdown a {
   transform: none;
 }
 
+.assistant-clear:disabled,
+.assistant-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .assistant-sprite-image,
-  .assistant-callout {
+  .assistant-callout,
+  .assistant-send,
+  .assistant-send-icon,
+  .assistant-stop-icon {
     animation: none;
+    transition: none;
   }
 }
 
