@@ -586,13 +586,6 @@ html.dark .portfolio-note-bubble {
   }
 }
 
-@media (min-width: 80rem) {
-  .hero-text {
-    justify-self: start;
-    margin-left: 1rem;
-  }
-}
-
 .hero-title {
   font-family: var(--font-display);
   font-size: 3rem;
@@ -607,6 +600,10 @@ html.dark .portfolio-note-bubble {
   display: block;
   margin-top: 0.25rem;
   color: var(--color-ink);
+  font-style: normal;
+}
+
+.hero-title .text-span {
   font-style: normal;
 }
 
@@ -636,7 +633,7 @@ html.dark .portfolio-note-bubble {
   color: var(--color-accent);
   line-height: 1.7;
   max-width: 32rem;
-  margin-bottom: 1.5rem;
+  margin: 0 auto 1.5rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgba(144, 100, 245, 0.16);
   border-radius: 0.95rem;
@@ -667,8 +664,9 @@ html.dark .portfolio-note-bubble {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 0.65rem;
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
   max-width: 34rem;
 }
 
@@ -684,6 +682,20 @@ html.dark .portfolio-note-bubble {
   border: 1px solid var(--color-border);
   border-radius: 9999px;
   box-shadow: none;
+}
+
+@media (min-width: 64rem) {
+  .tech-stack {
+    flex-wrap: nowrap;
+    max-width: none;
+    gap: 0.45rem;
+  }
+
+  .tech-tag {
+    flex: 0 0 auto;
+    padding-inline: 0.65rem;
+    white-space: nowrap;
+  }
 }
 
 .tech-arrow {
@@ -733,6 +745,7 @@ html.dark .portfolio-note-bubble {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 0.9rem 1rem;
   margin-top: 0.25rem;
 }
@@ -911,6 +924,20 @@ html.dark .portfolio-note-bubble {
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
+@media (min-width: 64rem) {
+  .hero-text {
+    width: min(100%, 33rem);
+  }
+}
+
+@media (min-width: 80rem) {
+  .hero-text {
+    width: calc(25vw + 13.25rem);
+    justify-self: end;
+    margin-right: 2rem;
+  }
+}
+
 .hero-summary-card {
   display: flex;
   flex-direction: column;
@@ -920,6 +947,7 @@ html.dark .portfolio-note-bubble {
 }
 
 .hero-text {
+  text-align: center;
   background:
     radial-gradient(circle at 0% 0%, rgba(232, 164, 212, 0.23), transparent 42%),
     radial-gradient(circle at 100% 100%, rgba(144, 100, 245, 0.16), transparent 45%),
@@ -1009,6 +1037,13 @@ html.js-anim .hero-summary-step-6 {
   font-weight: 900;
   letter-spacing: 0.08em;
   line-height: 1.2;
+}
+
+@media (min-width: 64rem) {
+  .hero-summary-eyebrow {
+    position: relative;
+    top: -0.667rem;
+  }
 }
 
 .hero-summary-title {
