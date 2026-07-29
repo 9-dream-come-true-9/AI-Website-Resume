@@ -1,6 +1,6 @@
 const rateBuckets = new Map();
 const PORTFOLIO_LINK = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
-const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集托管在飞书，打开链接后请先在浏览器登录飞书账号，再查看内容。';
+const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
 
 const PORTFOLIO_CONTEXT = `
 赵亚杰，AI 产品经理候选人，上海立信会计金融学院智能科学与技术本科在读。
@@ -232,7 +232,7 @@ function normalizePortfolioOutput(value) {
     )
     .replace(inlineNote, `${PORTFOLIO_LINK}\n\n${FEISHU_LOGIN_NOTE}`)
     .replace(
-      /(^|\n)\s*(?:💡\s*)?温馨提示：作品集托管在飞书，打开链接后请先在浏览器登录飞书账号，再查看内容。/g,
+      /(^|\n)\s*(?:💡\s*)?温馨提示：作品集[^\n]*?飞书账号[^\n]*?(?:[。~～]|$)/g,
       `$1${FEISHU_LOGIN_NOTE}`
     );
 }

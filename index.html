@@ -216,7 +216,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link id="site-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" media="print" />
-  <link id="site-styles" rel="stylesheet" href="style.css?v=assistant-stop-84" media="print" />
+  <link id="site-styles" rel="stylesheet" href="style.css?v=header-actions-right-1" media="print" />
   <noscript>
     <style>
       html.preloading,
@@ -229,7 +229,7 @@
       }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=assistant-stop-84" />
+    <link rel="stylesheet" href="style.css?v=header-actions-right-1" />
   </noscript>
   <script src="preloader.js?v=preloader-3" defer></script>
 </head>
@@ -284,7 +284,7 @@
       <div class="header-actions">
         <div class="portfolio-guidance portfolio-guidance-header" data-portfolio-guidance>
           <a
-            class="portfolio-link"
+            class="header-action-button portfolio-link"
             href="https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng"
             target="_blank"
             rel="noreferrer"
@@ -307,7 +307,7 @@
               </svg>
             </span>
             <div class="portfolio-note-bubble">
-              <p class="portfolio-note-copy">💡 温馨提示：作品集托管在飞书，打开链接后请先在浏览器登录飞书账号，再查看内容。</p>
+              <p class="portfolio-note-copy">💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~</p>
               <a
                 class="portfolio-note-confirm"
                 href="https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng"
@@ -316,6 +316,65 @@
                 data-portfolio-confirm
               >确定</a>
             </div>
+          </div>
+        </div>
+        <div class="resume-download" data-resume-download>
+          <button
+            class="header-action-button resume-download-trigger"
+            type="button"
+            data-resume-download-trigger
+            aria-expanded="false"
+            aria-controls="resume-download-menu"
+          >
+            <svg class="header-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v12"></path>
+              <path d="m7 10 5 5 5-5"></path>
+              <path d="M5 21h14"></path>
+            </svg>
+            <span>下载简历</span>
+            <svg class="resume-download-chevron" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="m6 8 4 4 4-4"></path>
+            </svg>
+          </button>
+          <div
+            class="resume-download-menu"
+            id="resume-download-menu"
+            data-resume-download-menu
+            aria-label="选择简历下载格式"
+            aria-hidden="true"
+          >
+            <a
+              class="resume-download-option"
+              href="assets/resume/zhao-yajie-ai-product-manager.pdf"
+              download="赵亚杰-AI产品经理.pdf"
+            >
+              <span class="resume-file-badge resume-file-badge-pdf" aria-hidden="true">PDF</span>
+              <span class="resume-download-copy">
+                <strong>PDF 版本</strong>
+                <span>适合在线查看与打印</span>
+              </span>
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M10 3v9"></path>
+                <path d="m6.5 9 3.5 3.5L13.5 9"></path>
+                <path d="M4 17h12"></path>
+              </svg>
+            </a>
+            <a
+              class="resume-download-option"
+              href="assets/resume/zhao-yajie-ai-product-manager.doc"
+              download="赵亚杰-AI产品经理.doc"
+            >
+              <span class="resume-file-badge resume-file-badge-word" aria-hidden="true">DOC</span>
+              <span class="resume-download-copy">
+                <strong>Word 版本</strong>
+                <span>适合编辑与内容复用</span>
+              </span>
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M10 3v9"></path>
+                <path d="m6.5 9 3.5 3.5L13.5 9"></path>
+                <path d="M4 17h12"></path>
+              </svg>
+            </a>
           </div>
         </div>
       </div>
@@ -380,7 +439,7 @@
                     </svg>
                   </span>
                   <div class="portfolio-note-bubble">
-                    <p class="portfolio-note-copy">💡 温馨提示：作品集托管在飞书，打开链接后请先在浏览器登录飞书账号，再查看内容。</p>
+                    <p class="portfolio-note-copy">💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~</p>
                     <a
                       class="portfolio-note-confirm"
                       href="https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng"
@@ -657,6 +716,6 @@
     </button>
   </div>
 
-  <script src="script.js?v=assistant-stop-3"></script>
+  <script src="script.js?v=portfolio-note-copy-1"></script>
 </body>
 </html>

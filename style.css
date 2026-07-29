@@ -323,9 +323,17 @@ html.dark .nav-link.nav-link-chat:hover {
 }
 
 .header-actions {
-  display: flex;
+  width: 15rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+}
+
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .header-actions {
+    transform: translateX(0.75rem);
+  }
 }
 
 .portfolio-guidance {
@@ -335,37 +343,225 @@ html.dark .nav-link.nav-link-chat:hover {
   isolation: isolate;
 }
 
-.portfolio-guidance-header > .portfolio-link {
+.portfolio-guidance-header,
+.resume-download {
+  width: 100%;
+  min-width: 0;
+}
+
+.resume-download {
+  position: relative;
+  isolation: isolate;
+}
+
+.header-action-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
   min-height: 2.625rem;
-  padding: 0.375rem 0.875rem;
+  padding: 0.375rem 0.625rem;
   border: 1px solid rgba(255, 255, 255, 0.42);
-  color: var(--color-accent) !important;
   background: rgba(255, 255, 255, 0.34) !important;
   border-color: rgba(255, 255, 255, 0.42) !important;
   border-radius: 999px !important;
-  font-size: 0.875rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
   box-shadow: 0 8px 22px -18px rgba(17, 19, 29, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   font-weight: 900 !important;
+  line-height: 1.15;
   white-space: nowrap;
   text-shadow: 0 1px 12px rgba(255, 255, 255, 0.9);
-  transition: background-color 150ms cubic-bezier(0.23, 1, 0.32, 1), transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  cursor: pointer;
+  transition:
+    background-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.portfolio-guidance-header > .portfolio-link:hover {
-  background: rgba(255, 255, 255, 0.5) !important;
+.portfolio-link {
+  color: var(--color-accent) !important;
 }
 
-.portfolio-guidance-header > .portfolio-link:active {
+.resume-download-trigger {
+  color: var(--color-nav-chat);
+}
+
+.header-action-button:active {
   transform: scale(0.97);
 }
 
-html.dark .portfolio-guidance-header > .portfolio-link {
+html.dark .header-action-button {
   background: rgba(17, 19, 29, 0.34) !important;
   border-color: rgba(255, 255, 255, 0.14) !important;
-  color: rgba(255, 255, 255, 0.88) !important;
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+}
+
+html.dark .portfolio-link {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+html.dark .resume-download-trigger {
+  color: #ff9bd1;
+}
+
+.header-action-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.resume-download-chevron {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.resume-download.is-open .resume-download-chevron {
+  transform: rotate(180deg);
+}
+
+.resume-download-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  width: min(17rem, calc(100vw - 2rem));
+  padding: 0.45rem;
+  border: 1px solid rgba(144, 100, 245, 0.2);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.25rem;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  color: var(--color-ink);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 20px 48px -24px rgba(17, 19, 29, 0.48), 0 12px 28px -20px rgba(144, 100, 245, 0.42);
+  backdrop-filter: blur(18px) saturate(1.14);
+  -webkit-backdrop-filter: blur(18px) saturate(1.14);
+  transform: translateY(-0.35rem) scale(0.97);
+  transform-origin: top right;
+  transition:
+    opacity 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 0s linear 160ms;
+}
+
+.resume-download.is-open .resume-download-menu {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+
+html.dark .resume-download-menu {
+  border-color: rgba(169, 135, 255, 0.28);
+  background: rgba(17, 19, 29, 0.98);
+  box-shadow: 0 22px 52px -24px rgba(0, 0, 0, 0.72), 0 12px 30px -20px rgba(169, 135, 255, 0.42);
+}
+
+.resume-download-option {
+  min-width: 0;
+  padding: 0.7rem 0.65rem;
+  border-radius: 0.75rem;
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) 1rem;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--color-ink);
+  text-decoration: none;
+  transition:
+    background-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.resume-download-option:active {
+  transform: scale(0.98);
+}
+
+.resume-download-option:focus-visible,
+.header-action-button:focus-visible {
+  outline: 3px solid rgba(144, 100, 245, 0.3);
+  outline-offset: 2px;
+}
+
+.resume-file-badge {
+  height: 2.1rem;
+  border-radius: 0.625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.resume-file-badge-pdf {
+  background: #e75353;
+}
+
+.resume-file-badge-word {
+  background: #3f70df;
+}
+
+.resume-download-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.08rem;
+}
+
+.resume-download-copy strong {
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.resume-download-copy > span {
+  overflow: hidden;
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-download-option > svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--color-ink-muted);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .header-action-button:hover {
+    background: rgba(255, 255, 255, 0.52) !important;
+    box-shadow: 0 10px 26px -18px rgba(17, 19, 29, 0.48), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  }
+
+  html.dark .header-action-button:hover {
+    background: rgba(17, 19, 29, 0.54) !important;
+  }
+
+  .resume-download-option:hover {
+    background: rgba(144, 100, 245, 0.09);
+  }
 }
 
 .portfolio-note {
@@ -504,19 +700,30 @@ html.dark .portfolio-note-bubble {
 }
 
 @media (min-width: 64rem) {
-  .header-inner {
-    height: 4.75rem;
+  .header-actions {
+    width: 19rem;
   }
 
-  .portfolio-guidance-header > .portfolio-link {
-    min-height: 3.9375rem;
-    padding: 0.5625rem 1.3125rem;
-    border-width: 1.5px;
-    font-size: 1.3125rem;
+  .header-action-button {
+    min-height: 3rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.9375rem;
   }
 
   .portfolio-guidance-header .portfolio-note-arrow {
-    margin-right: 5rem;
+    margin-right: 3.625rem;
+  }
+}
+
+@media (min-width: 64rem) and (max-width: 75.99rem) {
+  .header-actions {
+    transform: translateX(1rem);
+  }
+}
+
+@media (min-width: 76rem) {
+  .header-actions {
+    transform: translateX(calc((100vw - 76rem) / 2 + 1rem));
   }
 }
 
@@ -1703,9 +1910,59 @@ html.hero-motion-done .hero-summary-step {
   .portfolio-guidance-hero.is-open .portfolio-note {
     transform: translateY(-50%);
   }
+
+  .resume-download-menu,
+  .resume-download.is-open .resume-download-menu {
+    transform: none;
+    transition: opacity 120ms linear, visibility 0s linear;
+  }
+
+  .resume-download-chevron {
+    transition: none;
+  }
 }
 
 @media (max-width: 47.99rem) {
+  .header-inner {
+    height: auto;
+    min-height: 4.75rem;
+    padding: 0.75rem 1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+  }
+
+  .nav-logo {
+    justify-self: start;
+  }
+
+  .header-actions {
+    width: 100%;
+    transform: none;
+  }
+
+  .header-action-button {
+    min-height: 2.625rem;
+    padding-inline: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .portfolio-guidance-header .portfolio-note {
+    right: auto;
+    left: 0;
+    align-items: flex-start;
+    transform-origin: top left;
+  }
+
+  .portfolio-guidance-header .portfolio-note-arrow {
+    margin-right: 0;
+    margin-left: calc(25vw - 1.625rem);
+  }
+
+  .resume-download-menu {
+    width: min(17rem, calc(100vw - 2rem));
+  }
+
   .section-hero {
     padding-top: 2rem;
     padding-bottom: 3rem;

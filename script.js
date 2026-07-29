@@ -127,9 +127,63 @@
     });
   }
 
+  function initResumeDownload() {
+    const root = document.querySelector('[data-resume-download]');
+    if (!root) return;
+
+    const trigger = root.querySelector('[data-resume-download-trigger]');
+    const menu = root.querySelector('[data-resume-download-menu]');
+    const options = Array.from(root.querySelectorAll('.resume-download-option'));
+    if (!trigger || !menu) return;
+
+    function closeMenu(restoreFocus) {
+      root.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+      menu.setAttribute('aria-hidden', 'true');
+      if (restoreFocus) trigger.focus();
+    }
+
+    function openMenu() {
+      root.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+      menu.setAttribute('aria-hidden', 'false');
+    }
+
+    trigger.addEventListener('click', function () {
+      if (root.classList.contains('is-open')) closeMenu();
+      else openMenu();
+    });
+
+    trigger.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowDown') return;
+      event.preventDefault();
+      openMenu();
+      if (options[0]) options[0].focus();
+    });
+
+    options.forEach(function (option) {
+      option.addEventListener('click', function () {
+        closeMenu();
+      });
+    });
+
+    document.addEventListener('click', function (event) {
+      if (root.classList.contains('is-open') && !root.contains(event.target)) {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && root.classList.contains('is-open')) {
+        closeMenu(true);
+      }
+    });
+  }
+
   function initPageExperience() {
   initVideoBackgroundPlayback();
   initPortfolioGuidance();
+  initResumeDownload();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-anim');
@@ -246,7 +300,7 @@
   const openBtns = Array.from(document.querySelectorAll('[data-assistant-open]'));
   const endpoint = '/api/chat';
   const portfolioLink = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
-  const feishuLoginNote = '💡 温馨提示：作品集托管在飞书，打开链接后请先在浏览器登录飞书账号，再查看内容。';
+  const feishuLoginNote = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
   const storageKey = 'portfolio-text-agent-history-v6';
   const hiddenStorageKey = 'portfolio-text-agent-hidden-v1';
   const temporaryAssistantErrors = [
@@ -761,7 +815,7 @@
       )
       .replace(inlineNote, portfolioLink + '\n\n' + feishuLoginNote)
       .replace(
-        /(^|\n)\s*(?:💡\s*)?温馨提示：作品集托管在飞书，打开链接后请先在浏览器登录飞书账号，再查看内容。/g,
+        /(^|\n)\s*(?:💡\s*)?温馨提示：作品集[^\n]*?飞书账号[^\n]*?(?:[。~～]|$)/g,
         '$1' + feishuLoginNote
       );
   }
