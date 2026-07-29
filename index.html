@@ -2,7 +2,7 @@
 <html lang="zh-CN" class="preloading">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="description" content="赵亚杰，AI产品经理候选人，专注AI应用落地、RAG智能客服、AI营销工具与数据驱动增长。" />
@@ -24,9 +24,11 @@
       display: grid;
       place-items: center;
       min-height: 100%;
+      min-height: 100dvh;
       padding: clamp(2rem, 7vw, 5rem) clamp(1rem, 5vw, 3.5rem);
       box-sizing: border-box;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
       isolation: isolate;
       contain: layout paint style;
       color: #2c1762;
@@ -127,7 +129,7 @@
       transform: translate3d(-92%, 0, 0);
       backface-visibility: hidden;
       will-change: transform;
-      animation: sitePreloaderProgress 6.8s linear forwards;
+      animation: sitePreloaderProgress 0.9s ease-out forwards;
     }
 
     .site-preloader.is-ready .site-preloader__progress-fill {
@@ -216,7 +218,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link id="site-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" media="print" />
-  <link id="site-styles" rel="stylesheet" href="style.css?v=header-actions-right-1" media="print" />
+  <link id="site-styles" rel="stylesheet" href="style.css?v=responsive-layout-1" media="print" />
   <noscript>
     <style>
       html.preloading,
@@ -229,9 +231,9 @@
       }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=header-actions-right-1" />
+    <link rel="stylesheet" href="style.css?v=responsive-layout-1" />
   </noscript>
-  <script src="preloader.js?v=preloader-3" defer></script>
+  <script src="preloader.js?v=responsive-layout-1" defer></script>
 </head>
 <body>
   <div id="site-preloader" class="site-preloader" role="status" aria-live="polite" aria-label="网站正在加载">
@@ -716,6 +718,6 @@
     </button>
   </div>
 
-  <script src="script.js?v=portfolio-note-copy-1"></script>
+  <script src="script.js?v=responsive-layout-1"></script>
 </body>
 </html>

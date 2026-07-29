@@ -47,9 +47,10 @@
         return element !== loader && element.tagName !== 'SCRIPT';
       })
     : [];
-  const duration = 6800;
-  const failsafeDuration = 10000;
-  const blessingInterval = 2400;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const duration = reduceMotion ? 0 : 650;
+  const failsafeDuration = 6000;
+  const blessingInterval = 1600;
   const startTime = performance.now();
   const progress = loader.querySelector('[role="progressbar"]');
   const message = loader.querySelector('[data-preloader-message]');
@@ -60,8 +61,6 @@
     '愿生活有光，工作有糖，今天也轻松一点 💜'
   ];
   const ariaProgress = [8, 35, 62, 88];
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
   let blessingIndex = 0;
   let blessingStep = 0;
   let domReady = document.readyState !== 'loading';
@@ -180,7 +179,8 @@
   }, failsafeDuration);
 
   function startVideoPreload() {
-    if (!video) return;
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!video || reduceMotion || (connection && connection.saveData)) return;
 
     video.preload = 'auto';
     video.setAttribute('preload', 'auto');

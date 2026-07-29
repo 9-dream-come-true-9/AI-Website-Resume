@@ -312,10 +312,12 @@
   const localStore = getSafeStorage('localStorage');
   const sessionStore = getSafeStorage('sessionStorage');
   const idleInputPlaceholder = input.getAttribute('placeholder') || '';
+  const desktopFocusQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
 
   let history = loadHistory();
   let isResponding = false;
   let activeRequestController = null;
+  let lastOpenTrigger = null;
 
   function loadHistory() {
     try {
@@ -839,14 +841,30 @@
     });
   }
 
-  function setOpen(isOpen) {
+  function shouldAutoFocusInput() {
+    return desktopFocusQuery.matches && window.innerWidth >= 768;
+  }
+
+  function setOpen(isOpen, trigger) {
+    if (isOpen && trigger && typeof trigger.focus === 'function') {
+      lastOpenTrigger = trigger;
+    }
+
     root.classList.toggle('is-open', isOpen);
+    document.documentElement.classList.toggle('assistant-open', isOpen);
     panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    panel.toggleAttribute('inert', !isOpen);
     toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    if (isOpen) {
+    openBtns.forEach(function (button) {
+      button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    if (isOpen && shouldAutoFocusInput()) {
       window.setTimeout(function () {
         input.focus();
       }, 120);
+    } else if (!isOpen && panel.contains(document.activeElement) && lastOpenTrigger) {
+      lastOpenTrigger.focus({ preventScroll: true });
     }
   }
 
@@ -1022,7 +1040,6 @@
         activeRequestController = null;
         setResponding(false);
       }
-      if (root.classList.contains('is-open')) input.focus();
     }
   }
 
@@ -1037,13 +1054,13 @@
     await runAssistantResponse(text, requestHistory);
   }
 
-  toggleBtn.addEventListener('click', function () {
-    setOpen(!root.classList.contains('is-open'));
+  toggleBtn.addEventListener('click', function (event) {
+    setOpen(!root.classList.contains('is-open'), event.currentTarget);
   });
 
   if (calloutBtn) {
-    calloutBtn.addEventListener('click', function () {
-      setOpen(true);
+    calloutBtn.addEventListener('click', function (event) {
+      setOpen(true, event.currentTarget);
     });
   }
 
@@ -1051,7 +1068,7 @@
     button.addEventListener('click', function (event) {
       event.preventDefault();
       setHidden(false);
-      setOpen(true);
+      setOpen(true, button);
     });
   });
 
@@ -1070,6 +1087,12 @@
 
   closeBtn.addEventListener('click', function () {
     setOpen(false);
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && root.classList.contains('is-open')) {
+      setOpen(false);
+    }
   });
 
   clearBtn.addEventListener('click', function () {
@@ -1110,6 +1133,7 @@
   });
 
   setResponding(false);
+  setOpen(false);
   setHidden(localStore ? localStore.getItem(hiddenStorageKey) === 'true' : false, { persist: false });
   renderHistory();
 })();
