@@ -180,10 +180,77 @@
     });
   }
 
+  function copyContactText(value) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(value).then(function () {
+        return true;
+      }).catch(function () {
+        return fallbackCopyContactText(value);
+      });
+    }
+
+    return Promise.resolve(fallbackCopyContactText(value));
+  }
+
+  function fallbackCopyContactText(value) {
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      return document.execCommand('copy');
+    } catch (error) {
+      return false;
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  function initContactCopy() {
+    const buttons = Array.from(document.querySelectorAll('[data-contact-copy]'));
+    const status = document.querySelector('[data-contact-copy-status]');
+    if (!buttons.length || !status) return;
+
+    let feedbackTimer = null;
+
+    function showFeedback(button, label, copied) {
+      buttons.forEach(function (item) {
+        item.classList.remove('is-copied', 'is-copy-failed');
+      });
+
+      button.classList.add(copied ? 'is-copied' : 'is-copy-failed');
+      status.textContent = copied ? label + '已复制' : label + '复制失败，请手动复制';
+      status.classList.add('is-visible');
+
+      window.clearTimeout(feedbackTimer);
+      feedbackTimer = window.setTimeout(function () {
+        button.classList.remove('is-copied', 'is-copy-failed');
+        status.classList.remove('is-visible');
+      }, 1600);
+    }
+
+    buttons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        const value = button.getAttribute('data-contact-value') || '';
+        const label = button.getAttribute('data-contact-label') || '联系方式';
+        if (!value) return;
+
+        copyContactText(value).then(function (copied) {
+          showFeedback(button, label, copied);
+        });
+      });
+    });
+  }
+
   function initPageExperience() {
   initVideoBackgroundPlayback();
   initPortfolioGuidance();
   initResumeDownload();
+  initContactCopy();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-anim');
