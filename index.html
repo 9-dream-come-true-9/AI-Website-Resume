@@ -218,7 +218,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link id="site-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" media="print" />
-  <link id="site-styles" rel="stylesheet" href="style.css?v=contact-alignment-1" media="print" />
+  <link id="site-styles" rel="stylesheet" href="style.css?v=contact-nav-2" media="print" />
   <noscript>
     <style>
       html.preloading,
@@ -231,7 +231,7 @@
       }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=contact-alignment-1" />
+    <link rel="stylesheet" href="style.css?v=contact-nav-2" />
   </noscript>
   <script src="preloader.js?v=responsive-layout-1" defer></script>
 </head>
@@ -280,7 +280,8 @@
         <a href="#capabilities" data-nav-idx="1" class="nav-link">能力</a>
         <a href="#projects" data-nav-idx="2" class="nav-link">项目</a>
         <a href="#experience" data-nav-idx="4" class="nav-link">经历</a>
-        <a href="#assistant-panel" data-nav-idx="5" class="nav-link nav-link-chat" data-assistant-open>聊天</a>
+        <a href="#contact" data-nav-idx="5" class="nav-link nav-link-contact">联系</a>
+        <a href="#assistant-panel" data-nav-idx="6" class="nav-link nav-link-chat" data-assistant-open aria-controls="assistant-panel" aria-expanded="false">聊天</a>
       </nav>
 
       <div class="header-actions">
@@ -487,13 +488,10 @@
     </section>
     <section id="capabilities" class="section">
       <div class="container">
-        <div class="reveal" style="margin-bottom: 3rem;">
+        <div class="section-heading reveal">
           <h2 class="section-title text-reveal">
-            My <span class="text-span">Capabilities</span>
+            <span class="text-span">能力概览</span>
           </h2>
-          <p class="section-subtitle text-reveal text-delay-1">
-            我能独立推进的 AI 产品工作 —— 从需求调研到商业化落地的全链路能力。
-          </p>
         </div>
 
         <div class="card-grid card-grid-4">
@@ -525,13 +523,10 @@
     </section>
     <section id="projects" class="section">
       <div class="container">
-        <div class="reveal" style="margin-bottom: 3rem;">
+        <div class="section-heading reveal">
           <h2 class="section-title text-reveal">
-            My <span class="text-span">Projects</span>
+            <span class="text-span">项目概览</span>
           </h2>
-          <p class="section-subtitle text-reveal text-delay-1">
-            每个项目都按真实业务问题展开：用户痛点、产品机制、AI方案、数据结果。
-          </p>
         </div>
 
         <div class="card-grid card-grid-2">
@@ -579,9 +574,9 @@
     </section>
     <section id="experience" class="section">
       <div class="container">
-        <div class="reveal" style="margin-bottom: 2.5rem;">
+        <div class="section-heading reveal">
           <h2 class="section-title text-reveal">
-            <span class="text-span">Experience</span> & Education
+            <span class="text-span">经历</span>&amp;<span class="text-span">教育</span>
           </h2>
         </div>
 
@@ -766,6 +761,6 @@
     </button>
   </div>
 
-  <script src="script.js?v=responsive-layout-1"></script>
+  <script src="script.js?v=contact-nav-1"></script>
 </body>
 </html>

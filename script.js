@@ -68,6 +68,90 @@
     }, 3300);
   }
 
+  function initFloatingNavigation() {
+    const primaryNav = document.querySelector('.site-header .nav-links');
+    const siteHeader = document.querySelector('.site-header');
+    if (!primaryNav || !siteHeader || document.querySelector('[data-floating-nav]')) return;
+
+    const floatingNav = primaryNav.cloneNode(true);
+    floatingNav.className = 'floating-nav';
+    floatingNav.setAttribute('data-floating-nav', '');
+    floatingNav.setAttribute('aria-label', '滚动快捷导航');
+    floatingNav.setAttribute('aria-hidden', 'true');
+    floatingNav.setAttribute('inert', '');
+    siteHeader.insertAdjacentElement('afterend', floatingNav);
+
+    let isVisible = false;
+
+    function transferFocusedLink(fromNav, toNav) {
+      const activeElement = document.activeElement;
+      if (!activeElement || !fromNav.contains(activeElement)) return;
+
+      const href = activeElement.getAttribute('href');
+      if (!href) return;
+
+      const matchingLink = Array.from(toNav.querySelectorAll('a[href]')).find(function (link) {
+        return link.getAttribute('href') === href;
+      });
+
+      if (matchingLink) matchingLink.focus({ preventScroll: true });
+    }
+
+    function setFloatingNavVisible(shouldShow) {
+      const stateChanged = shouldShow !== isVisible;
+
+      if (stateChanged) {
+        if (shouldShow) transferFocusedLink(primaryNav, floatingNav);
+        else transferFocusedLink(floatingNav, primaryNav);
+      }
+
+      isVisible = shouldShow;
+      floatingNav.classList.toggle('is-visible', shouldShow);
+      floatingNav.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+      floatingNav.toggleAttribute('inert', !shouldShow);
+      primaryNav.toggleAttribute('inert', shouldShow);
+
+      if (shouldShow) primaryNav.setAttribute('aria-hidden', 'true');
+      else primaryNav.removeAttribute('aria-hidden');
+    }
+
+    function updateFloatingNav() {
+      const navRect = primaryNav.getBoundingClientRect();
+      setFloatingNavVisible(navRect.bottom <= 0);
+    }
+
+    if ('IntersectionObserver' in window) {
+      const navObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          const hasScrolledPastNav = !entry.isIntersecting && entry.boundingClientRect.bottom <= 0;
+          setFloatingNavVisible(hasScrolledPastNav);
+        });
+      }, { threshold: 0 });
+
+      navObserver.observe(primaryNav);
+      window.addEventListener('resize', updateFloatingNav);
+      window.addEventListener('pageshow', updateFloatingNav);
+    } else {
+      let updateRequested = false;
+
+      function requestFloatingNavUpdate() {
+        if (updateRequested) return;
+        updateRequested = true;
+        window.requestAnimationFrame(function () {
+          updateRequested = false;
+          updateFloatingNav();
+        });
+      }
+
+      window.addEventListener('scroll', requestFloatingNavUpdate, { passive: true });
+      window.addEventListener('resize', requestFloatingNavUpdate);
+      window.addEventListener('pageshow', requestFloatingNavUpdate);
+    }
+
+    whenSiteReady(updateFloatingNav);
+    updateFloatingNav();
+  }
+
   function initPortfolioGuidance() {
     const guidanceItems = Array.from(document.querySelectorAll('[data-portfolio-guidance]'));
     if (!guidanceItems.length) return;
@@ -299,10 +383,13 @@
   function setActiveNav(id) {
     navLinks.forEach(function (link) {
       const href = link.getAttribute('href');
-      if (href === '#' + id) {
-        link.style.color = 'var(--color-accent)';
+      const isActive = href === '#' + id;
+      link.classList.toggle('is-active', isActive);
+
+      if (isActive) {
+        link.setAttribute('aria-current', 'location');
       } else {
-        link.style.color = '';
+        link.removeAttribute('aria-current');
       }
     });
   }
@@ -335,6 +422,7 @@
   });
   }
 
+  initFloatingNavigation();
   whenSiteReady(initPageExperience);
 })();
 
