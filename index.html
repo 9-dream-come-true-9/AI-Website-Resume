@@ -218,7 +218,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link id="site-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" media="print" />
-  <link id="site-styles" rel="stylesheet" href="style.css?v=responsive-layout-1" media="print" />
+  <link id="site-styles" rel="stylesheet" href="style.css?v=contact-alignment-1" media="print" />
   <noscript>
     <style>
       html.preloading,
@@ -231,7 +231,7 @@
       }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=responsive-layout-1" />
+    <link rel="stylesheet" href="style.css?v=contact-alignment-1" />
   </noscript>
   <script src="preloader.js?v=responsive-layout-1" defer></script>
 </head>
@@ -617,7 +617,7 @@
             Get in <span class="text-span">touch</span>
           </p>
           <p class="contact-desc">
-            期待与贵公司共同探索产品落地的无限可能！欢迎联系我<span class="contact-desc-hint" id="contact-copy-hint">（点击联系方式即可复制）</span>
+            期待与贵公司共同探索产品落地的无限可能！欢迎联系我<span class="contact-desc-hint" id="contact-action-hint">（电话、邮箱、微信点击可复制，GitHub 点击可跳转）</span>
           </p>
           <div class="contact-info">
             <button
@@ -627,9 +627,12 @@
               data-contact-label="电话"
               data-contact-value="17855772097"
               aria-label="复制电话：17855772097"
-              aria-describedby="contact-copy-hint"
+              aria-describedby="contact-action-hint"
             >
-              <span class="contact-item-icon" aria-hidden="true">📞</span>
+              <span class="contact-item-kind" aria-hidden="true">
+                <span class="contact-item-icon">📞</span>
+                <span class="contact-item-label">电话</span>
+              </span>
               <span class="contact-item-value">17855772097</span>
             </button>
             <button
@@ -639,9 +642,12 @@
               data-contact-label="邮箱"
               data-contact-value="m19323067704@163.com"
               aria-label="复制邮箱：m19323067704@163.com"
-              aria-describedby="contact-copy-hint"
+              aria-describedby="contact-action-hint"
             >
-              <span class="contact-item-icon" aria-hidden="true">✉️</span>
+              <span class="contact-item-kind" aria-hidden="true">
+                <span class="contact-item-icon">✉️</span>
+                <span class="contact-item-label">邮箱</span>
+              </span>
               <span class="contact-item-value">m19323067704@163.com</span>
             </button>
             <button
@@ -651,11 +657,32 @@
               data-contact-label="微信"
               data-contact-value="Motivation_zyj"
               aria-label="复制微信：Motivation_zyj"
-              aria-describedby="contact-copy-hint"
+              aria-describedby="contact-action-hint"
             >
-              <span class="contact-item-icon" aria-hidden="true">💬</span>
+              <span class="contact-item-kind" aria-hidden="true">
+                <span class="contact-item-icon">💬</span>
+                <span class="contact-item-label">微信</span>
+              </span>
               <span class="contact-item-value">Motivation_zyj</span>
             </button>
+            <a
+              class="contact-item contact-item-link"
+              href="https://github.com/9-dream-come-true-9"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="在新标签页打开 GitHub 主页：9-dream-come-true-9"
+              aria-describedby="contact-action-hint"
+            >
+              <span class="contact-item-kind" aria-hidden="true">
+                <span class="contact-item-icon contact-item-icon-github">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943" />
+                  </svg>
+                </span>
+                <span class="contact-item-label">GitHub</span>
+              </span>
+              <span class="contact-item-value">9-dream-come-true-9</span>
+            </a>
           </div>
           <p class="contact-copy-status" data-contact-copy-status role="status" aria-live="polite" aria-atomic="true"></p>
         </div>
