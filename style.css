@@ -3284,10 +3284,16 @@ html.dark .assistant-bubble.is-markdown a {
   .assistant-resident {
     width: auto;
     align-items: flex-end;
+    gap: 0.75rem;
   }
 
   .assistant-callout {
-    display: none;
+    width: 14rem;
+    margin-top: 0;
+    display: block;
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 
   .assistant-panel {
@@ -3335,7 +3341,23 @@ html.dark .assistant-bubble.is-markdown a {
   }
 
   .assistant-callout {
-    display: none;
+    width: min(13.25rem, calc(100% - var(--assistant-icon-size) - 0.625rem));
+    min-width: 0;
+    min-height: 3rem;
+    padding: 0.58rem 0.78rem;
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1.32;
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .assistant-callout::after {
+    right: -0.32rem;
+    top: 1.2rem;
+    width: 0.65rem;
+    height: 0.65rem;
   }
 
   .assistant-launcher {
@@ -3589,5 +3611,33 @@ html.dark .toolchain-arrow:hover {
     width: 34px;
     height: 34px;
     font-size: 18px;
+  }
+}
+
+/* Regression guard: keep the assistant intro bubble visible on mobile. */
+@media (max-width: 74.99rem) {
+  .site-assistant:not(.is-open):not(.is-hidden) .assistant-callout {
+    display: block;
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 35rem) {
+  .site-assistant:not(.is-open):not(.is-hidden) .assistant-callout {
+    width: min(13.25rem, calc(100% - var(--assistant-icon-size) - 0.625rem));
+    min-width: 0;
+    min-height: 3rem;
+    padding: 0.58rem 0.78rem;
+    font-size: 0.75rem;
+    line-height: 1.32;
+  }
+
+  .site-assistant:not(.is-open):not(.is-hidden) .assistant-callout::after {
+    right: -0.32rem;
+    top: 1.2rem;
+    width: 0.65rem;
+    height: 0.65rem;
   }
 }
