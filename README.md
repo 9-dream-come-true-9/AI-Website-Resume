@@ -77,3 +77,5 @@ CHAT_RATE_LIMIT_MAX=12
 ## 说明
 
 本仓库用于维护赵亚杰的个人作品集网站。页面中的项目数据、经历与联系方式均为个人展示内容。
+
+<!-- Push notification test: documentation-only change; no website runtime files modified. -->
