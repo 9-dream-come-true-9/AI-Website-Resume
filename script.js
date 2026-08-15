@@ -330,11 +330,169 @@
     });
   }
 
+  function initToolchainIcons() {
+    const icons = document.querySelectorAll('.toolchain-icon');
+    if (!icons.length) return;
+
+    icons.forEach(function (icon) {
+      const mark = icon.closest('.toolchain-mark');
+      if (!mark) return;
+
+      const showFallback = function () {
+        mark.classList.add('is-icon-fallback');
+      };
+
+      icon.addEventListener('error', showFallback, { once: true });
+      if (icon.complete && icon.naturalWidth === 0) showFallback();
+    });
+  }
+
+  function initToolchainCarousel() {
+    const carousel = document.querySelector('.toolchain-carousel');
+    const loop = carousel && carousel.querySelector('.toolchain-loop');
+    const track = loop && loop.querySelector('.toolchain-track');
+    const group = track && track.querySelector('.toolchain-group');
+    const previous = carousel && carousel.querySelector('[data-toolchain-prev]');
+    const next = carousel && carousel.querySelector('[data-toolchain-next]');
+
+    if (!carousel || !loop || !track || !group || !group.children.length || carousel.dataset.ready === 'true') return;
+
+    const items = Array.prototype.slice.call(group.querySelectorAll('.toolchain-item'));
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const duplicate = group.cloneNode(true);
+    duplicate.setAttribute('aria-hidden', 'true');
+    track.appendChild(duplicate);
+    carousel.dataset.ready = 'true';
+
+    let position = 0;
+    let groupWidth = 0;
+    let speed = 0;
+    let lastTime = performance.now();
+    let tween = null;
+
+    function normalize(value) {
+      if (!groupWidth) return 0;
+      const normalized = value % groupWidth;
+      return normalized < 0 ? normalized + groupWidth : normalized;
+    }
+
+    function render() {
+      track.style.transform = 'translate3d(' + (-position).toFixed(3) + 'px, 0, 0)';
+    }
+
+    function measure() {
+      groupWidth = group.getBoundingClientRect().width;
+      speed = groupWidth ? groupWidth / 26000 : 0;
+      position = normalize(position);
+      render();
+    }
+
+    function offsets() {
+      return items.map(function (item) {
+        return item.offsetLeft;
+      });
+    }
+
+    function shift(direction) {
+      if (!groupWidth) measure();
+      if (!groupWidth) return;
+
+      if (tween) {
+        position = normalize(tween.to);
+        tween = null;
+      }
+
+      const itemOffsets = offsets();
+      const start = normalize(position);
+      let distance;
+
+      if (direction > 0) {
+        const nextOffset = itemOffsets.find(function (offset) {
+          return offset > start + 1;
+        });
+        distance = nextOffset === undefined ? groupWidth - start + itemOffsets[0] : nextOffset - start;
+      } else {
+        let previousOffset;
+        for (let index = itemOffsets.length - 1; index >= 0; index -= 1) {
+          if (itemOffsets[index] < start - 1) {
+            previousOffset = itemOffsets[index];
+            break;
+          }
+        }
+        distance = previousOffset === undefined ? start + groupWidth - itemOffsets[itemOffsets.length - 1] : start - previousOffset;
+        distance *= -1;
+      }
+
+      let from = position;
+      if (direction < 0 && from + distance < 0) from += groupWidth;
+      const to = from + distance;
+
+      position = from;
+      tween = { from: from, to: to, startedAt: performance.now() };
+      render();
+    }
+
+    function tick(now) {
+      const elapsed = Math.min(now - lastTime, 80);
+      lastTime = now;
+
+      if (tween) {
+        const progress = Math.min((now - tween.startedAt) / 280, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        position = tween.from + (tween.to - tween.from) * eased;
+        if (progress >= 1) {
+          position = normalize(tween.to);
+          tween = null;
+        }
+      } else if (!reducedMotion.matches) {
+        position = normalize(position + speed * (elapsed / 1));
+      }
+
+      render();
+      window.requestAnimationFrame(tick);
+    }
+
+    previous.addEventListener('click', function () {
+      shift(-1);
+    });
+
+    next.addEventListener('click', function () {
+      shift(1);
+    });
+
+    loop.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        shift(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        shift(1);
+      }
+    });
+
+    if ('ResizeObserver' in window) {
+      const resizeObserver = new ResizeObserver(measure);
+      resizeObserver.observe(group);
+      resizeObserver.observe(loop);
+    } else {
+      window.addEventListener('resize', measure);
+    }
+
+    reducedMotion.addEventListener('change', function () {
+      lastTime = performance.now();
+    });
+
+    measure();
+    window.requestAnimationFrame(tick);
+  }
+
   function initPageExperience() {
   initVideoBackgroundPlayback();
   initPortfolioGuidance();
   initResumeDownload();
   initContactCopy();
+  initToolchainCarousel();
+  initToolchainIcons();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-anim');
