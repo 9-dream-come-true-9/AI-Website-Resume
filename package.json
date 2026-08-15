@@ -3,8 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "test": "node scripts/verify-assistant-callout.js",
+    "test": "node scripts/verify-assistant-callout.js && node scripts/verify-resume-download.js",
     "verify:assistant": "node scripts/verify-assistant-callout.js",
+    "verify:resume": "node scripts/verify-resume-download.js",
     "start": "vercel dev"
   }
 }
