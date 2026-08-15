@@ -6,6 +6,9 @@ const path = require('path');
 const downloadResume = require('../api/download-resume');
 const pageHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
 
+assert(pageHtml.includes('<strong>PDF 版本（推荐，更美观）</strong>'));
+assert(pageHtml.includes('<span>适合在线查看与打印</span>'));
+
 const FILES = {
   pdf: {
     filename: '赵亚杰-两年经验-AI产品经理.pdf',
