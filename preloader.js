@@ -48,9 +48,9 @@
       })
     : [];
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const duration = reduceMotion ? 0 : 650;
-  const failsafeDuration = 6000;
+  const fixedDuration = 6400;
   const blessingInterval = 1600;
+  const revealDuration = reduceMotion ? 0 : 420;
   const startTime = performance.now();
   const progress = loader.querySelector('[role="progressbar"]');
   const message = loader.querySelector('[data-preloader-message]');
@@ -63,14 +63,10 @@
   const ariaProgress = [8, 35, 62, 88];
   let blessingIndex = 0;
   let blessingStep = 0;
-  let domReady = document.readyState !== 'loading';
-  let stylesReady = false;
-  let durationReached = false;
   let finished = false;
   let messageTimer = 0;
   let blessingTimer = 0;
-  let durationTimer = 0;
-  let failsafeTimer = 0;
+  let finishTimer = 0;
 
   pageContent.forEach(function (element) {
     element.setAttribute('inert', '');
@@ -126,8 +122,7 @@
 
     window.clearInterval(blessingTimer);
     window.clearTimeout(messageTimer);
-    window.clearTimeout(durationTimer);
-    window.clearTimeout(failsafeTimer);
+    window.clearTimeout(finishTimer);
 
     if (progress) progress.setAttribute('aria-valuenow', '100');
     if (video && video.readyState >= 2) {
@@ -141,42 +136,20 @@
 
     window.setTimeout(function () {
       revealSite(forced);
-    }, reduceMotion ? 0 : 420);
+    }, revealDuration);
   }
 
-  function maybeFinish() {
-    if (durationReached && domReady && stylesReady) finish(false);
-  }
-
-  function markDomReady() {
-    domReady = true;
-    maybeFinish();
-  }
-
-  function markStylesReady() {
-    stylesReady = true;
-    maybeFinish();
-  }
-
-  applyDeferredStylesheet(styleLink, markStylesReady);
+  applyDeferredStylesheet(styleLink);
   applyDeferredStylesheet(fontLink);
-
-  if (!domReady) {
-    document.addEventListener('DOMContentLoaded', markDomReady, { once: true });
-  }
 
   blessingTimer = window.setInterval(function () {
     showBlessing((blessingIndex + 1) % blessings.length);
   }, blessingInterval);
 
-  durationTimer = window.setTimeout(function () {
-    durationReached = true;
-    maybeFinish();
-  }, Math.max(0, duration - (performance.now() - startTime)));
-
-  failsafeTimer = window.setTimeout(function () {
-    finish(true);
-  }, failsafeDuration);
+  // Keep the preloader visible for exactly 6.4s, including its exit animation.
+  finishTimer = window.setTimeout(function () {
+    finish(false);
+  }, Math.max(0, fixedDuration - revealDuration - (performance.now() - startTime)));
 
   function startVideoPreload() {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;

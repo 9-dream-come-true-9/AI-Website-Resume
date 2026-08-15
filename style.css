@@ -3260,6 +3260,17 @@ html.dark .assistant-bubble.is-markdown a {
     overflow: hidden;
   }
 
+  /* Keep the open chat above both the header and the floating navigation. */
+  html.assistant-open .site-header,
+  html.assistant-open .floating-nav {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  html.assistant-open .site-assistant {
+    z-index: 1200;
+  }
+
   .site-assistant {
     right: max(1rem, env(safe-area-inset-right));
     bottom: max(1rem, env(safe-area-inset-bottom));

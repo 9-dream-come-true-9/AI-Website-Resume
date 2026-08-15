@@ -1165,6 +1165,39 @@
 
     root.classList.toggle('is-open', isOpen);
     document.documentElement.classList.toggle('assistant-open', isOpen);
+
+    const floatingNav = document.querySelector('[data-floating-nav]');
+    const siteHeader = document.querySelector('.site-header');
+    const primaryNav = document.querySelector('.site-header .nav-links');
+    if (isOpen) {
+      if (siteHeader) {
+        siteHeader.setAttribute('aria-hidden', 'true');
+        siteHeader.setAttribute('inert', '');
+      }
+      if (floatingNav) {
+        floatingNav.setAttribute('aria-hidden', 'true');
+        floatingNav.setAttribute('inert', '');
+      }
+      if (primaryNav) {
+        primaryNav.setAttribute('aria-hidden', 'true');
+        primaryNav.setAttribute('inert', '');
+      }
+    } else {
+      const floatingNavVisible = Boolean(floatingNav && floatingNav.classList.contains('is-visible'));
+      if (siteHeader) {
+        siteHeader.removeAttribute('aria-hidden');
+        siteHeader.removeAttribute('inert');
+      }
+      if (floatingNav) {
+        floatingNav.setAttribute('aria-hidden', floatingNavVisible ? 'false' : 'true');
+        floatingNav.toggleAttribute('inert', !floatingNavVisible);
+      }
+      if (primaryNav) {
+        primaryNav.setAttribute('aria-hidden', floatingNavVisible ? 'true' : 'false');
+        primaryNav.toggleAttribute('inert', floatingNavVisible);
+      }
+    }
+
     panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     panel.toggleAttribute('inert', !isOpen);
     toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
