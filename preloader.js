@@ -99,6 +99,8 @@
   function revealSite(forced) {
     if (loader.hidden) return;
 
+    if (progress) progress.setAttribute('aria-valuenow', '100');
+    loader.classList.add('is-ready');
     loader.hidden = true;
     root.classList.remove('preloading');
     root.classList.add('site-ready');
@@ -124,11 +126,9 @@
     window.clearTimeout(messageTimer);
     window.clearTimeout(finishTimer);
 
-    if (progress) progress.setAttribute('aria-valuenow', '100');
     if (video && video.readyState >= 2) {
       video.classList.add('is-preloaded');
     }
-    loader.classList.add('is-ready');
 
     window.setTimeout(function () {
       loader.classList.add('is-leaving');
