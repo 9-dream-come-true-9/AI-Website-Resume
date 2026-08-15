@@ -2419,20 +2419,6 @@ html.hero-motion-done .hero-summary-step {
 }
 
 @media (max-width: 21.5rem) {
-  .resume-download-menu {
-    width: min(20rem, calc(100vw - 1rem));
-  }
-
-  .resume-download-option {
-    grid-template-columns: 2.15rem minmax(0, 1fr) 0.875rem;
-    gap: 0.45rem;
-    padding: 0.65rem 0.45rem;
-  }
-
-  .resume-download-copy strong {
-    font-size: 0.8125rem;
-  }
-
   .contact-card {
     padding-inline: 0.5rem;
   }

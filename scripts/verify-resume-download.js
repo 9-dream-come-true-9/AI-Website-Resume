@@ -10,6 +10,9 @@ const pageCss = fs.readFileSync(path.join(process.cwd(), 'style.css'), 'utf8');
 assert(pageHtml.includes('<strong>PDF 版本（推荐，更美观）</strong>'));
 assert(pageHtml.includes('<span>适合在线查看与打印</span>'));
 assert(/\.resume-download-copy strong\s*\{[^}]*white-space:\s*nowrap;/s.test(pageCss));
+assert(
+  /<a\s+class="resume-download-option"\s+href="\/api\/download-resume\?format=pdf"\s+download="赵亚杰-两年经验-AI产品经理\.pdf"[\s\S]*?<strong>PDF 版本（推荐，更美观）<\/strong>[\s\S]*?<svg[\s\S]*?<\/svg>\s*<\/a>/.test(pageHtml)
+);
 
 const FILES = {
   pdf: {
