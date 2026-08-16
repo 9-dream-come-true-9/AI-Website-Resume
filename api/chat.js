@@ -5,11 +5,12 @@ const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集记录在飞书文档，
 const PORTFOLIO_CONTEXT = `
 赵亚杰，AI 产品经理候选人，上海立信会计金融学院智能科学与技术本科在读。
 核心方向：AI 应用落地、RAG 智能客服、AI 营销工具、AI 陪伴 App、Vibe Coding 原型、数据驱动决策。
-项目包括：
-1. SoulTalk AI 陪伴 App：参与 AI 生图、生视频、聊天模型运营与个性化 Push，Push 点击率由 2.3% 提升至 7.8%。
-2. SoulTalk UGC 机制：设计用户自创角色激励机制，降低角色创作门槛，增强创作者反馈闭环。
-3. RAG 智能客服：基于 RAG 架构搭建智能客服问答链路，覆盖售前、售后、商品咨询等场景，客服响应准确率提升至 91%。
-4. AI 营销工具：内容生成与 KOL 推荐，分析爆文内容、达人画像和投放效果，提升内容 ROI。
+个人开源项目只有 1 个：BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集。
+项目由岗位发布、候选人初评分、候选人沟通、简历索要与收取 4 个可独立安装、可组合调用的 Skill 构成，贯通完整招聘流程。
+岗位发布支持实习、社招全职、应届校招和兼职 4 类岗位；候选人初评分基于岗位 JD 给出有证据边界的匹配结论、档位、理由与信息缺口；沟通环节支持批量打招呼、文档依据回复、批量消息和指定联系人发送；简历环节支持平台或普通消息索要、附件确认及 PDF/DOCX 下载、校验和解析。
+项目基于 Python、pywinauto、Windows UI Automation（UIA）、JSON Schema、PDF/DOCX 解析和 Git/GitHub，通过字段回读、岗位与候选人身份核验、幂等防重、未知状态停止、只读结果核对和隐私脱敏控制真实外部操作风险。
+项目已开源 4 个可组合 Skill，并提供 29 名候选人脱敏初评和完整工作流演示。仓库：https://github.com/9-dream-come-true-9/boss-zhipin-desktop-skills 。
+实习经历成果包括：SoulTalk AI 陪伴 App 个性化 Push 点击率由 2.3% 提升至 7.8%；SoulTalk UGC 机制降低角色创作门槛；RAG 智能客服响应准确率提升至 91%。这些属于实习经历，不要把它们列为个人开源项目。
 联系方式：电话 17855772097，微信 Motivation_zyj，邮箱 m19323067704@163.com，GitHub https://github.com/9-dream-come-true-9。
 飞书作品集链接：${PORTFOLIO_LINK}
 
@@ -73,6 +74,7 @@ module.exports = async function handler(req, res) {
         '你是赵亚杰个人主页里的 AI 求职助手。',
         '只回答与赵亚杰的项目、经历、能力、岗位匹配和联系方式有关的问题。',
         '回答要简洁、准确、偏招聘视角，优先中文。',
+        '当用户询问项目时，只介绍 BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集；SoulTalk 与 RAG 等内容属于实习经历，不要列为独立项目。',
         '不要输出思考过程、推理过程、分析草稿或 <think> 标签，只输出可以直接展示给用户的最终答案。',
         `每次提供飞书作品集链接时，必须严格分成下面两段，链接行只能包含链接，不能把提示放进 Markdown 链接文字或 URL：\n飞书作品集：${PORTFOLIO_LINK}\n\n${FEISHU_LOGIN_NOTE}`,
         '如果用户问到页面没有的信息，说明作品集里暂未提供。',

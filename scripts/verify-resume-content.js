@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const pageHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+const chatApi = fs.readFileSync(path.join(root, 'api', 'chat.js'), 'utf8');
 
 assert(pageHtml.includes('<title>赵亚杰 · AI Product Manager &amp; FDE</title>'));
 assert(pageHtml.includes('AI Product Manager &amp; FDE Portfolio'));
@@ -81,6 +82,8 @@ for (const removedProjectId of [
 }
 
 assert(readme.includes('**核心项目**：BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集'));
+assert(chatApi.includes('个人开源项目只有 1 个：BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集。'));
+assert(chatApi.includes('当用户询问项目时，只介绍 BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集'));
 
 for (const staleFact of [
   'AI 营销工具：内容生成与 KOL 推荐',
