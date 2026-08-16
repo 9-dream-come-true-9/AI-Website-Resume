@@ -217,13 +217,21 @@
 
     const trigger = root.querySelector('[data-resume-download-trigger]');
     const menu = root.querySelector('[data-resume-download-menu]');
-    const options = Array.from(root.querySelectorAll('.resume-download-option'));
-    if (!trigger || !menu) return;
+    const wordTrigger = root.querySelector('[data-resume-word-trigger]');
+    const wordOptions = root.querySelector('[data-resume-word-options]');
+    const downloadLinks = Array.from(root.querySelectorAll('a.resume-download-option'));
+    if (!trigger || !menu || !wordTrigger || !wordOptions) return;
+
+    function setWordOptionsOpen(isOpen) {
+      wordTrigger.setAttribute('aria-expanded', String(isOpen));
+      wordOptions.hidden = !isOpen;
+    }
 
     function closeMenu(restoreFocus) {
       root.classList.remove('is-open');
       trigger.setAttribute('aria-expanded', 'false');
       menu.setAttribute('aria-hidden', 'true');
+      setWordOptionsOpen(false);
       if (restoreFocus) trigger.focus();
     }
 
@@ -242,11 +250,23 @@
       if (event.key !== 'ArrowDown') return;
       event.preventDefault();
       openMenu();
-      if (options[0]) options[0].focus();
+      if (downloadLinks[0]) downloadLinks[0].focus();
     });
 
-    options.forEach(function (option) {
-      option.addEventListener('click', function () {
+    wordTrigger.addEventListener('click', function () {
+      setWordOptionsOpen(wordTrigger.getAttribute('aria-expanded') !== 'true');
+    });
+
+    wordTrigger.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      setWordOptionsOpen(true);
+      const firstWordOption = wordOptions.querySelector('a');
+      if (firstWordOption) firstWordOption.focus();
+    });
+
+    downloadLinks.forEach(function (downloadLink) {
+      downloadLink.addEventListener('click', function () {
         closeMenu();
       });
     });

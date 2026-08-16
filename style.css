@@ -649,6 +649,23 @@ html.dark .resume-download-menu {
   transform: scale(0.98);
 }
 
+.resume-word-trigger {
+  width: 100%;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+}
+
+.resume-word-trigger[aria-expanded="true"] {
+  background: rgba(144, 100, 245, 0.09);
+}
+
+html.dark .resume-word-trigger[aria-expanded="true"] {
+  background: rgba(169, 135, 255, 0.12);
+}
+
 .resume-download-option:focus-visible,
 .header-action-button:focus-visible {
   outline: 3px solid rgba(144, 100, 245, 0.3);
@@ -704,6 +721,36 @@ html.dark .resume-download-menu {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.resume-word-chevron {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.resume-word-trigger[aria-expanded="true"] .resume-word-chevron {
+  transform: rotate(180deg);
+}
+
+.resume-word-options {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 3.05rem;
+}
+
+.resume-word-options[hidden] {
+  display: none;
+}
+
+.resume-word-suboption {
+  grid-template-columns: minmax(0, 1fr) 1rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(144, 100, 245, 0.12);
+  background: rgba(144, 100, 245, 0.045);
+}
+
+html.dark .resume-word-suboption {
+  border-color: rgba(169, 135, 255, 0.16);
+  background: rgba(169, 135, 255, 0.07);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2211,6 +2258,10 @@ html.hero-motion-done .hero-summary-step {
   }
 
   .resume-download-chevron {
+    transition: none;
+  }
+
+  .resume-word-chevron {
     transition: none;
   }
 }

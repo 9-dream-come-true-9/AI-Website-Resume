@@ -9,11 +9,16 @@ const pageCss = fs.readFileSync(path.join(process.cwd(), 'style.css'), 'utf8');
 
 assert(pageHtml.includes('<strong>PDF 版本（推荐，更美观）</strong>'));
 assert(pageHtml.includes('<span>适合在线查看与打印</span>'));
-assert(pageHtml.includes('<strong>Word 电脑可编辑版</strong>'));
-assert(pageHtml.includes('<span>保留原始版式，建议电脑 Word</span>'));
-assert(pageHtml.includes('<strong>Word 手机可编辑版</strong>'));
-assert(pageHtml.includes('<span>标准正文结构，手机电脑均可编辑</span>'));
-assert.strictEqual((pageHtml.match(/class="resume-download-option"/g) || []).length, 3);
+assert(pageHtml.includes('<strong>Word 版本</strong>'));
+assert(pageHtml.includes('<span>选择电脑版或手机版</span>'));
+assert(pageHtml.includes('<strong>电脑版</strong>'));
+assert(pageHtml.includes('<span>原版排版，电脑编辑</span>'));
+assert(pageHtml.includes('<strong>手机版</strong>'));
+assert(pageHtml.includes('<span>手机电脑均可编辑</span>'));
+assert.strictEqual((pageHtml.match(/data-resume-word-trigger/g) || []).length, 1);
+assert.strictEqual((pageHtml.match(/data-resume-word-options/g) || []).length, 1);
+assert(/data-resume-word-trigger[\s\S]*?aria-expanded="false"[\s\S]*?aria-controls="resume-word-options"/.test(pageHtml));
+assert(/id="resume-word-options"[\s\S]*?data-resume-word-options[\s\S]*?hidden/.test(pageHtml));
 assert(/\.resume-download-copy strong\s*\{[^}]*white-space:\s*nowrap;/s.test(pageCss));
 assert(
   /<a\s+class="resume-download-option"\s+href="\/api\/download-resume\?format=pdf"\s+download="赵亚杰-两年经验-AI产品经理\.pdf"[\s\S]*?<strong>PDF 版本（推荐，更美观）<\/strong>[\s\S]*?<svg[\s\S]*?<\/svg>\s*<\/a>/.test(pageHtml)

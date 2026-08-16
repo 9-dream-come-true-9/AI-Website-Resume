@@ -363,38 +363,61 @@
                 <path d="M4 17h12"></path>
               </svg>
             </a>
-            <a
-              class="resume-download-option"
-              href="/api/download-resume?format=docx"
-              download="赵亚杰-两年经验-AI产品经理.docx"
+            <button
+              class="resume-download-option resume-word-trigger"
+              type="button"
+              data-resume-word-trigger
+              aria-expanded="false"
+              aria-controls="resume-word-options"
             >
               <span class="resume-file-badge resume-file-badge-word" aria-hidden="true">DOCX</span>
               <span class="resume-download-copy">
-                <strong>Word 电脑可编辑版</strong>
-                <span>保留原始版式，建议电脑 Word</span>
+                <strong>Word 版本</strong>
+                <span>选择电脑版或手机版</span>
               </span>
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M10 3v9"></path>
-                <path d="m6.5 9 3.5 3.5L13.5 9"></path>
-                <path d="M4 17h12"></path>
+              <svg class="resume-word-chevron" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="m6 8 4 4 4-4"></path>
               </svg>
-            </a>
-            <a
-              class="resume-download-option"
-              href="/api/download-resume?format=docx-mobile"
-              download="赵亚杰-两年经验-AI产品经理-手机可编辑版.docx"
+            </button>
+            <div
+              class="resume-word-options"
+              id="resume-word-options"
+              data-resume-word-options
+              role="group"
+              aria-label="选择 Word 下载版本"
+              hidden
             >
-              <span class="resume-file-badge resume-file-badge-word" aria-hidden="true">DOCX</span>
-              <span class="resume-download-copy">
-                <strong>Word 手机可编辑版</strong>
-                <span>标准正文结构，手机电脑均可编辑</span>
-              </span>
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M10 3v9"></path>
-                <path d="m6.5 9 3.5 3.5L13.5 9"></path>
-                <path d="M4 17h12"></path>
-              </svg>
-            </a>
+              <a
+                class="resume-download-option resume-word-suboption"
+                href="/api/download-resume?format=docx"
+                download="赵亚杰-两年经验-AI产品经理.docx"
+              >
+                <span class="resume-download-copy">
+                  <strong>电脑版</strong>
+                  <span>原版排版，电脑编辑</span>
+                </span>
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M10 3v9"></path>
+                  <path d="m6.5 9 3.5 3.5L13.5 9"></path>
+                  <path d="M4 17h12"></path>
+                </svg>
+              </a>
+              <a
+                class="resume-download-option resume-word-suboption"
+                href="/api/download-resume?format=docx-mobile"
+                download="赵亚杰-两年经验-AI产品经理-手机可编辑版.docx"
+              >
+                <span class="resume-download-copy">
+                  <strong>手机版</strong>
+                  <span>手机电脑均可编辑</span>
+                </span>
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M10 3v9"></path>
+                  <path d="m6.5 9 3.5 3.5L13.5 9"></path>
+                  <path d="M4 17h12"></path>
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
       </div>
