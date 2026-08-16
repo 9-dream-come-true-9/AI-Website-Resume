@@ -1,15 +1,28 @@
 const fs = require('fs');
 const path = require('path');
 
+const PDF_RESUME = Object.freeze({
+  assetFilename: '赵亚杰-两年经验-AI产品经理.pdf',
+  downloadFilename: '赵亚杰-两年经验-AI产品经理.pdf',
+  contentType: 'application/pdf'
+});
+
+const DESKTOP_WORD_RESUME = Object.freeze({
+  assetFilename: '赵亚杰-两年经验-AI产品经理.docx',
+  downloadFilename: '赵亚杰-两年经验-AI产品经理.docx',
+  contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+});
+
+const MOBILE_WORD_RESUME = Object.freeze({
+  assetFilename: '赵亚杰-两年经验-AI产品经理-手机可编辑版.docx',
+  downloadFilename: '赵亚杰-两年经验-AI产品经理-手机可编辑版.docx',
+  contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+});
+
 const RESUME_FILES = Object.freeze({
-  pdf: Object.freeze({
-    filename: '赵亚杰-两年经验-AI产品经理.pdf',
-    contentType: 'application/pdf'
-  }),
-  docx: Object.freeze({
-    filename: '赵亚杰-两年经验-AI产品经理.docx',
-    contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  })
+  pdf: PDF_RESUME,
+  docx: DESKTOP_WORD_RESUME,
+  'docx-mobile': MOBILE_WORD_RESUME
 });
 
 function getRequestedFormat(req) {
@@ -59,7 +72,7 @@ module.exports = function handler(req, res) {
     return;
   }
 
-  const filePath = path.join(process.cwd(), 'assets', 'resume', resume.filename);
+  const filePath = path.join(process.cwd(), 'assets', 'resume', resume.assetFilename);
 
   try {
     const fileStats = fs.statSync(filePath);
@@ -67,7 +80,7 @@ module.exports = function handler(req, res) {
     res.setHeader('Content-Type', resume.contentType);
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename*=UTF-8''${encodeContentDispositionFilename(resume.filename)}`
+      `attachment; filename*=UTF-8''${encodeContentDispositionFilename(resume.downloadFilename)}`
     );
     res.setHeader('Content-Length', String(fileStats.size));
     res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');

@@ -9,6 +9,11 @@ const pageCss = fs.readFileSync(path.join(process.cwd(), 'style.css'), 'utf8');
 
 assert(pageHtml.includes('<strong>PDF 版本（推荐，更美观）</strong>'));
 assert(pageHtml.includes('<span>适合在线查看与打印</span>'));
+assert(pageHtml.includes('<strong>Word 电脑可编辑版</strong>'));
+assert(pageHtml.includes('<span>保留原始版式，建议电脑 Word</span>'));
+assert(pageHtml.includes('<strong>Word 手机可编辑版</strong>'));
+assert(pageHtml.includes('<span>标准正文结构，手机电脑均可编辑</span>'));
+assert.strictEqual((pageHtml.match(/class="resume-download-option"/g) || []).length, 3);
 assert(/\.resume-download-copy strong\s*\{[^}]*white-space:\s*nowrap;/s.test(pageCss));
 assert(
   /<a\s+class="resume-download-option"\s+href="\/api\/download-resume\?format=pdf"\s+download="赵亚杰-两年经验-AI产品经理\.pdf"[\s\S]*?<strong>PDF 版本（推荐，更美观）<\/strong>[\s\S]*?<svg[\s\S]*?<\/svg>\s*<\/a>/.test(pageHtml)
@@ -16,12 +21,22 @@ assert(
 
 const FILES = {
   pdf: {
-    filename: '赵亚杰-两年经验-AI产品经理.pdf',
-    contentType: 'application/pdf'
+    assetFilename: '赵亚杰-两年经验-AI产品经理.pdf',
+    downloadFilename: '赵亚杰-两年经验-AI产品经理.pdf',
+    contentType: 'application/pdf',
+    sha256: '47cb47fa66b094a25429714fc18f1ef8c78b56a2dbbd51533229866307d10546'
   },
   docx: {
-    filename: '赵亚杰-两年经验-AI产品经理.docx',
-    contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    assetFilename: '赵亚杰-两年经验-AI产品经理.docx',
+    downloadFilename: '赵亚杰-两年经验-AI产品经理.docx',
+    contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    sha256: 'd647ff7721f1685806661d04a09daefcf71b8959a9f42cfec08deb73ba2ef6d1'
+  },
+  'docx-mobile': {
+    assetFilename: '赵亚杰-两年经验-AI产品经理-手机可编辑版.docx',
+    downloadFilename: '赵亚杰-两年经验-AI产品经理-手机可编辑版.docx',
+    contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    sha256: 'd4cf0e2e34e95a4aeb0221638765e6b346c90857ec592b2e984e68e4001cf5cc'
   }
 };
 
@@ -45,7 +60,7 @@ function hash(value) {
 
 for (const [format, expected] of Object.entries(FILES)) {
   assert(pageHtml.includes(`href="/api/download-resume?format=${format}"`));
-  assert(pageHtml.includes(`download="${expected.filename}"`));
+  assert(pageHtml.includes(`download="${expected.downloadFilename}"`));
 
   const response = createResponse();
   downloadResume(
@@ -53,9 +68,10 @@ for (const [format, expected] of Object.entries(FILES)) {
     response
   );
 
-  const filePath = path.join(process.cwd(), 'assets', 'resume', expected.filename);
+  const filePath = path.join(process.cwd(), 'assets', 'resume', expected.assetFilename);
   const file = fs.readFileSync(filePath);
-  const encodedFilename = encodeURIComponent(expected.filename);
+  const encodedFilename = encodeURIComponent(expected.downloadFilename);
+  assert.strictEqual(hash(file), expected.sha256);
 
   assert.strictEqual(response.statusCode, 200);
   assert.strictEqual(response.headers.get('content-type'), expected.contentType);
