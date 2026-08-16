@@ -1,17 +1,17 @@
-# 赵亚杰 · AI Product Manager Portfolio
+# 赵亚杰 · AI Product Manager & FDE Portfolio
 
-一个面向 AI 产品经理求职场景的个人主页，集中展示我的产品能力、项目经历、业务成果与联系方式。网站同时内置「AI 求职小杰君」，访客可以直接询问我的项目、经历、岗位匹配度和作品集信息。
+一个面向 AI 产品经理与 FDE 求职场景的个人主页，集中展示我的客户现场 AI 落地能力、Agent 与 Skill 产品经验、项目成果和联系方式。网站同时内置「AI 求职小杰君」，访客可以直接询问我的项目、经历、岗位匹配度和作品集信息。
 
-[在线访问网站](https://zyjpm.vercel.app) · [查看飞书作品集](https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng)
+[在线访问网站](https://www.zyjaiproduct.click/) · [查看飞书作品集](https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng)
 
 ## 网站内容
 
-- **个人定位**：AI 产品全链路、数据分析、Vibe Coding 与产品落地能力
-- **核心项目**：SoulTalk AI 陪伴 App、UGC 机制、RAG 智能客服、AI 营销工具
-- **量化成果**：个性化 Push 点击率由 2.3% 提升至 7.8%，RAG 客服响应准确率达到 91%
-- **经历展示**：实习经历、教育背景与核心能力概览
+- **个人定位**：2 年经验 AI 产品经理与 FDE，专注客户现场 AI 落地、Agent 方案、Skill 封装和 Vibe Coding
+- **核心项目**：BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集，内含岗位发布、候选人初评分、候选人沟通、简历索要与收取 4 个可组合 Skill
+- **量化成果**：沉淀 20+ 个技能模块，个性化 Push 点击率由 2.3% 提升至 7.8%，角色多样性提高 30%，RAG 客服响应准确率达到 91%
+- **经历展示**：一级展示任职/就读时间、公司或学校及岗位/专业；公司通过“点击可以查看详情”进入项目细节，学校教育信息直接展开
 - **AI 求职助手**：支持流式回答、快捷提问、历史消息、编辑与复制
-- **多端体验**：响应式布局、深色模式、入场动效与减少动态效果适配
+- **多端体验**：响应式布局、玻璃卡片视觉、入场动效与减少动态效果适配
 
 ## 技术实现
 

@@ -506,6 +506,73 @@
     window.requestAnimationFrame(tick);
   }
 
+  function initExperienceDialogs() {
+    const triggers = Array.from(document.querySelectorAll('[data-experience-dialog-open]'));
+    if (!triggers.length) return;
+
+    const lastTriggerByDialog = new WeakMap();
+
+    function closeDialog(dialog) {
+      if (!dialog) return;
+
+      if (typeof dialog.close === 'function' && dialog.open) {
+        dialog.close();
+      } else {
+        dialog.removeAttribute('open');
+        const fallbackTrigger = lastTriggerByDialog.get(dialog);
+        if (fallbackTrigger) fallbackTrigger.focus({ preventScroll: true });
+      }
+    }
+
+    triggers.forEach(function (trigger) {
+      const dialogId = trigger.getAttribute('data-experience-dialog-open');
+      const dialog = dialogId ? document.getElementById(dialogId) : null;
+      if (!dialog || dialog.tagName !== 'DIALOG') return;
+
+      trigger.addEventListener('click', function (event) {
+        lastTriggerByDialog.set(dialog, trigger);
+        dialog.classList.toggle('is-keyboard-open', event.detail === 0);
+
+        if (typeof dialog.showModal === 'function') {
+          if (!dialog.open) dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+      });
+
+      dialog.addEventListener('click', function (event) {
+        if (event.target === dialog) closeDialog(dialog);
+      });
+
+      dialog.addEventListener('cancel', function (event) {
+        event.preventDefault();
+        closeDialog(dialog);
+      });
+
+      dialog.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape' || !dialog.open) return;
+        event.preventDefault();
+        closeDialog(dialog);
+      });
+
+      dialog.addEventListener('close', function () {
+        dialog.classList.remove('is-keyboard-open');
+        const lastTrigger = lastTriggerByDialog.get(dialog);
+        if (lastTrigger) lastTrigger.focus({ preventScroll: true });
+      });
+
+      const closeButton = dialog.querySelector('.experience-detail-close');
+      if (closeButton) {
+        closeButton.addEventListener('click', function (event) {
+          if (typeof dialog.close !== 'function') {
+            event.preventDefault();
+            closeDialog(dialog);
+          }
+        });
+      }
+    });
+  }
+
   function initPageExperience() {
   initVideoBackgroundPlayback();
   initPortfolioGuidance();
@@ -513,6 +580,7 @@
   initContactCopy();
   initToolchainCarousel();
   initToolchainIcons();
+  initExperienceDialogs();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-anim');
