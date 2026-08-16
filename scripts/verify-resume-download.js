@@ -29,19 +29,19 @@ const FILES = {
     assetFilename: '赵亚杰-两年经验-AI产品经理.pdf',
     downloadFilename: '赵亚杰-两年经验-AI产品经理.pdf',
     contentType: 'application/pdf',
-    sha256: '47cb47fa66b094a25429714fc18f1ef8c78b56a2dbbd51533229866307d10546'
+    sha256: 'a291bbb2951052877c22672fb8bb420453e41f9f542fe93f83f45de77ca32eab'
   },
   docx: {
     assetFilename: '赵亚杰-两年经验-AI产品经理.docx',
     downloadFilename: '赵亚杰-两年经验-AI产品经理.docx',
     contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    sha256: 'd647ff7721f1685806661d04a09daefcf71b8959a9f42cfec08deb73ba2ef6d1'
+    sha256: '4ef61a79cd8ffd35824e6f224eb8836f408305f5b035cf4048e0bc08be2853d4'
   },
   'docx-mobile': {
     assetFilename: '赵亚杰-两年经验-AI产品经理-手机可编辑版.docx',
     downloadFilename: '赵亚杰-两年经验-AI产品经理-手机可编辑版.docx',
     contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    sha256: 'd4cf0e2e34e95a4aeb0221638765e6b346c90857ec592b2e984e68e4001cf5cc'
+    sha256: '974b95fd6754c5c893662d5f7be79750b27c0fd9518b3a49d89da39153a71f6d'
   }
 };
 
