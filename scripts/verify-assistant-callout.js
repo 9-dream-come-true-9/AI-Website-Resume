@@ -4,9 +4,11 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const cssPath = path.join(root, 'style.css');
 const htmlPath = path.join(root, 'index.html');
+const scriptPath = path.join(root, 'script.js');
 
 const css = fs.readFileSync(cssPath, 'utf8');
 const html = fs.readFileSync(htmlPath, 'utf8');
+const script = fs.readFileSync(scriptPath, 'utf8');
 
 function fail(message) {
   console.error(`Assistant callout regression: ${message}`);
@@ -71,6 +73,28 @@ const guardComment = 'Regression guard: keep the assistant intro bubble visible 
 const guardStart = css.indexOf(guardComment);
 const guardScope = guardStart === -1 ? '' : css.slice(guardStart);
 const stylesheetVersions = Array.from(html.matchAll(/style\.css\?v=([^"']+)/g), (match) => match[1]);
+const baseCalloutBlock = ruleBlocks(css, '.assistant-callout')[0] || '';
+const fixedAssistantBlock = ruleBlocks(css, '.site-assistant').find((block) => /position\s*:\s*fixed\b/.test(block)) || '';
+const launcherBlock = ruleBlocks(css, '.assistant-launcher')[0] || '';
+
+if (!/<p\s+class="assistant-callout"\s+aria-hidden="true">/.test(html)) {
+  fail('assistant callout must be non-interactive hint text');
+}
+if (html.includes('data-assistant-callout') || script.includes('calloutBtn')) {
+  fail('assistant callout still has click behavior');
+}
+if (!/pointer-events\s*:\s*none\b/.test(baseCalloutBlock)) {
+  fail('assistant callout must allow pointer input to pass through');
+}
+if (!/(?:-webkit-)?user-select\s*:\s*none\b/.test(baseCalloutBlock)) {
+  fail('assistant callout must not capture accidental text selection');
+}
+if (!/pointer-events\s*:\s*none\b/.test(fixedAssistantBlock)) {
+  fail('assistant root must allow uncovered pointer input to pass through');
+}
+if (!/pointer-events\s*:\s*auto\b/.test(launcherBlock)) {
+  fail('assistant launcher must remain clickable');
+}
 
 if (!tablet) fail('missing max-width: 74.99rem assistant breakpoint');
 if (!phone) fail('missing max-width: 35rem assistant breakpoint');

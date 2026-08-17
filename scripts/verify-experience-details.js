@@ -54,7 +54,7 @@ const expectedEntries = new Map([
 for (const match of triggerMatches) {
   const [, targetId, controlsId, visibleAction] = match;
   assert.strictEqual(targetId, controlsId, `aria-controls mismatch for ${targetId}`);
-  assert.strictEqual(visibleAction.trim(), '点击可以查看详情', `Unexpected action label for ${targetId}`);
+  assert.strictEqual(visibleAction.trim(), '点击查看详情', `Unexpected action label for ${targetId}`);
   assert(html.includes(`id="${targetId}"`), `Trigger target does not exist: ${targetId}`);
   assert(html.includes('aria-haspopup="dialog"'), 'Company triggers must expose dialog semantics');
 }
@@ -66,6 +66,15 @@ const schoolEntryMatch = html.match(
   /<p\b[^>]*class="[^"]*experience-entry-static[^"]*"[^>]*>[\s\S]*?上海立信会计金融学院（公办本科）[\s\S]*?<\/p>/
 );
 assert(schoolEntryMatch, 'School must be rendered as a static paragraph entry');
+assert(
+  /class="[^"]*experience-entry-education[^"]*"/.test(schoolEntryMatch[0]),
+  'School must use the education grid layout'
+);
+assert(
+  schoolEntryMatch[0].includes('<span class="experience-entry-secondary experience-entry-education-major">智能科学与技术</span>'),
+  'School major must occupy the education grid action column without a repeated degree'
+);
+assert(!schoolEntryMatch[0].includes('智能科学与技术 本科'), 'School major must not repeat the undergraduate degree');
 for (const interactiveMarker of ['<button', '<a ', 'tabindex=', 'role="button"', 'data-experience-dialog-open']) {
   assert(
     !schoolEntryMatch[0].includes(interactiveMarker),
@@ -85,7 +94,7 @@ for (const [targetId, entry] of expectedEntries) {
 for (const schoolFact of [
   '2023.09 — 2027.06',
   '上海立信会计金融学院（公办本科）',
-  '智能科学与技术 本科',
+  '智能科学与技术',
   '通过大学英语六级，具备英文技术文档阅读能力；持有 Python 编程三级证书。'
 ]) {
   assert(visibleTimeline.includes(schoolFact), `Primary timeline is missing school fact: ${schoolFact}`);
@@ -179,7 +188,10 @@ assert(script.includes('initExperienceDialogs();'), 'Dialog initializer is not c
 
 for (const styleMarker of [
   '.experience-entry {',
-  '.experience-entry-company {',
+  '.experience-entry-company,',
+  '.experience-entry-education {',
+  '.experience-entry-education-major {',
+  '.experience-entry-education .experience-entry-description {',
   '.experience-entry-date {',
   '.experience-entry-title {',
   '.experience-entry-action {',
@@ -192,5 +204,22 @@ for (const styleMarker of [
 ]) {
   assert(css.includes(styleMarker), `Missing experience interaction style: ${styleMarker}`);
 }
+
+assert(
+  /\.experience-entry-company,\s*\.experience-entry-education\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*7\.75rem;/s.test(css),
+  'Company actions and school major must share the same fixed grid column'
+);
+assert(
+  /\.experience-entry-education-major\s*\{[^}]*grid-column:\s*2;[^}]*font-weight:\s*800;[^}]*text-align:\s*center;/s.test(css),
+  'School major must be bold and centered in the shared action column'
+);
+assert(
+  /\.experience-entry-education \.experience-entry-description\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;[^}]*color:\s*#7f54e8;[^}]*font-weight:\s*800;/s.test(css),
+  'School credentials must span the card in bold accessible purple'
+);
+assert(
+  !/\.experience-entry-education \.experience-entry-description\s*\{[^}]*text-align:\s*center;/s.test(css),
+  'School credentials must retain the requested left alignment'
+);
 
 console.log('Experience section order and dialog interaction check passed.');

@@ -688,7 +688,6 @@
 
   const panel = document.getElementById('assistant-panel');
   const toggleBtn = root.querySelector('[data-assistant-toggle]');
-  const calloutBtn = root.querySelector('[data-assistant-callout]');
   const hideBtn = root.querySelector('[data-assistant-hide]');
   const recallBtn = root.querySelector('[data-assistant-recall]');
   const closeBtn = root.querySelector('[data-assistant-close]');
@@ -1491,12 +1490,6 @@
   toggleBtn.addEventListener('click', function (event) {
     setOpen(!root.classList.contains('is-open'), event.currentTarget);
   });
-
-  if (calloutBtn) {
-    calloutBtn.addEventListener('click', function (event) {
-      setOpen(true, event.currentTarget);
-    });
-  }
 
   openBtns.forEach(function (button) {
     button.addEventListener('click', function (event) {

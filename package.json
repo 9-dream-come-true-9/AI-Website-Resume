@@ -3,10 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "test": "node scripts/verify-assistant-callout.js && node scripts/verify-resume-download.js && node scripts/verify-resume-content.js && node scripts/verify-experience-details.js",
+    "test": "node scripts/verify-assistant-callout.js && node scripts/verify-resume-download.js && node scripts/verify-resume-content.js && node scripts/verify-hero-layout.js && node scripts/verify-experience-details.js",
     "verify:assistant": "node scripts/verify-assistant-callout.js",
     "verify:resume": "node scripts/verify-resume-download.js",
     "verify:content": "node scripts/verify-resume-content.js",
+    "verify:hero": "node scripts/verify-hero-layout.js",
     "verify:experience": "node scripts/verify-experience-details.js",
     "start": "vercel dev"
   }

@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, '..');
 const pageHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
 const chatApi = fs.readFileSync(path.join(root, 'api', 'chat.js'), 'utf8');
+const styleCss = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
 assert(pageHtml.includes('<title>赵亚杰 · AI Product Manager &amp; FDE</title>'));
 assert(pageHtml.includes('AI Product Manager &amp; FDE Portfolio'));
@@ -24,8 +25,6 @@ const pageFacts = [
   '售后咨询自动化替代率达 25%',
   'BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集',
   '4 个可组合 Skill',
-  '29 名候选人脱敏初评',
-  '完整工作流演示',
   'pywinauto',
   'Windows UIA',
   '上海立信会计金融学院（公办本科）',
@@ -51,7 +50,7 @@ for (const fact of pageOnlyFacts) {
 }
 
 for (const userProvidedFact of [
-  '智能科学与技术 本科',
+  '智能科学与技术',
   '具备英文技术文档阅读能力',
   '持有 Python 编程三级证书'
 ]) {
@@ -66,12 +65,37 @@ const projectsEnd = pageHtml.indexOf('<section id="contact"', projectsStart);
 assert(projectsStart !== -1 && projectsEnd > projectsStart, 'Missing bounded #projects section');
 const projectsSection = pageHtml.slice(projectsStart, projectsEnd);
 const projectCardCount = (projectsSection.match(/\bclass="[^"]*\bproject-card\b[^"]*"/g) || []).length;
+const projectFlowCount = (projectsSection.match(/\bclass="project-flow-number"/g) || []).length;
+const projectDescLineCount = (projectsSection.match(/\bclass="project-desc-line"/g) || []).length;
 
 assert(projectsSection.includes('<span class="text-span">项目介绍</span>'));
 assert.strictEqual(projectCardCount, 1, `Expected exactly one project card, found ${projectCardCount}`);
+assert.strictEqual(projectFlowCount, 4, `Expected four Skill steps, found ${projectFlowCount}`);
+assert.strictEqual(projectDescLineCount, 2, `Expected two project description lines, found ${projectDescLineCount}`);
 assert(projectsSection.includes('id="project-boss-automation"'));
-assert(projectsSection.includes('一个项目内的 4 个 Skill'));
 assert(projectsSection.includes('https://github.com/9-dream-come-true-9/boss-zhipin-desktop-skills'));
+assert(!projectsSection.includes('一个完整项目，贯通 BOSS 直聘桌面端招聘全流程'));
+assert(!projectsSection.includes('针对招聘操作分散、对象易误选和任务易重复的问题'));
+assert(projectsSection.includes('提供岗位发布、候选人初评分、批量及定向沟通、简历索要与收取能力'));
+assert(projectsSection.includes('支持批量打招呼、文档回复、批量消息与指定联系人发送'));
+assert(!projectsSection.includes('<strong>运行保障</strong>'));
+assert(!projectsSection.includes('<strong>技术栈</strong>'));
+assert(!projectsSection.includes('<strong>开源成果</strong>'));
+assert(projectsSection.includes('<strong>岗位发布</strong>'));
+assert(projectsSection.includes('<strong>候选人筛选</strong>'));
+assert(projectsSection.includes('<strong>消息与简历</strong>'));
+assert(projectsSection.includes('根据岗位要求给候选人评分，说明匹配理由'));
+assert(projectsSection.includes('可以批量或单独联系候选人'));
+assert(/<div class="project-case-heading">[\s\S]*?<\/div>\s*<div class="project-case-intro">/.test(projectsSection));
+assert(/<div class="project-title-row">[\s\S]*?<h3[^>]*>BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集<\/h3>[\s\S]*?<a class="project-repo-link"/.test(projectsSection));
+assert(/\.project-case-study\s*\{[\s\S]*?max-width:\s*58rem;/.test(styleCss));
+assert(/\.project-case-study\s*\{[\s\S]*?background:\s*var\(--color-bg-soft\);/.test(styleCss));
+assert(/\.project-case-study \.project-kicker,\s*\.project-case-study \.project-title\s*\{[\s\S]*?text-align:\s*center;/.test(styleCss));
+assert(/@media \(min-width:\s*48rem\)[\s\S]*?\.project-title-row\s*\{[\s\S]*?grid-template-columns:\s*minmax\(8\.5rem, 1fr\) minmax\(0, 42rem\) minmax\(8\.5rem, 1fr\);/.test(styleCss));
+assert(/\.project-title-row \.project-repo-link\s*\{[\s\S]*?flex:\s*0 0 auto;/.test(styleCss));
+assert(/\.project-case-study \.project-desc\s*\{[\s\S]*?text-align:\s*center;[\s\S]*?text-wrap:\s*balance;/.test(styleCss));
+assert(/@media \(max-width:\s*47\.99rem\)[\s\S]*?\.project-title-row \.project-repo-link\s*\{[\s\S]*?width:\s*auto;/.test(styleCss));
+assert(/\.timeline\s*\{[\s\S]*?max-width:\s*58rem;/.test(styleCss));
 
 for (const removedProjectId of [
   'project-soultalk-ai',
