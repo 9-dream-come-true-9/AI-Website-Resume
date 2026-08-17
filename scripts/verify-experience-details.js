@@ -214,12 +214,30 @@ assert(
   'School major must be bold and centered in the shared action column'
 );
 assert(
+  /\.experience-entry-education-major\s*\{[^}]*align-self:\s*center;[^}]*font-size:\s*clamp\(1rem,\s*1\.8vw,\s*1\.125rem\);[^}]*line-height:\s*1\.45;/s.test(css),
+  'School major must be vertically centered and match the base school title typography'
+);
+assert(
+  /\.experience-entry-secondary\s*\{[^}]*font-size:\s*1\.025rem;[^}]*\}\s*\.experience-entry-title,\s*\.experience-entry-education-major\s*\{[^}]*font-size:\s*1\.25rem;/s.test(css),
+  'Large-screen school title and major must share the same font size after the secondary-text override'
+);
+assert(
+  /@media \(max-width:\s*47\.99rem\)[\s\S]*?\.experience-entry-title,\s*\.experience-entry-education-major\s*\{[^}]*font-size:\s*1rem;/s.test(css),
+  'Mobile school title and major must share the same font size'
+);
+assert(
   /\.experience-entry-education \.experience-entry-description\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;[^}]*color:\s*#7f54e8;[^}]*font-weight:\s*800;/s.test(css),
   'School credentials must span the card in bold accessible purple'
 );
 assert(
   !/\.experience-entry-education \.experience-entry-description\s*\{[^}]*text-align:\s*center;/s.test(css),
   'School credentials must retain the requested left alignment'
+);
+
+assert.strictEqual(
+  (html.match(/education-major-alignment-1/g) || []).length,
+  2,
+  'Education major alignment cache token must cover normal and noscript stylesheets'
 );
 
 console.log('Experience section order and dialog interaction check passed.');

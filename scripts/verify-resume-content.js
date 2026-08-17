@@ -41,8 +41,7 @@ const pageOnlyFacts = [
   '2026.03 — 2026.09',
   '2025.09 — 2026.02',
   '2025.03 — 2025.08',
-  '2023.09 — 2027.06',
-  '可实习 6 个月以上、每周 5 天、随时到岗'
+  '2023.09 — 2027.06'
 ];
 
 for (const fact of pageOnlyFacts) {
@@ -60,6 +59,12 @@ for (const userProvidedFact of [
 assert(readme.includes('https://www.zyjaiproduct.click/'));
 assert(readme.includes('BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集'));
 
+const contactStart = pageHtml.indexOf('<section id="contact"');
+assert(contactStart !== -1, 'Missing contact section');
+const contactSection = pageHtml.slice(contactStart);
+assert(!contactSection.includes('可实习 6 个月以上、每周 5 天、随时到岗。'));
+assert(contactSection.includes('期待与贵公司共同探索 AI 产品落地的无限可能！欢迎联系我'));
+
 const projectsStart = pageHtml.indexOf('<section id="projects"');
 const projectsEnd = pageHtml.indexOf('<section id="contact"', projectsStart);
 assert(projectsStart !== -1 && projectsEnd > projectsStart, 'Missing bounded #projects section');
@@ -74,6 +79,7 @@ assert.strictEqual(projectFlowCount, 4, `Expected four Skill steps, found ${proj
 assert.strictEqual(projectDescLineCount, 2, `Expected two project description lines, found ${projectDescLineCount}`);
 assert(projectsSection.includes('id="project-boss-automation"'));
 assert(projectsSection.includes('https://github.com/9-dream-come-true-9/boss-zhipin-desktop-skills'));
+assert(!projectsSection.includes('个人开源项目 · 招聘自动化'));
 assert(!projectsSection.includes('一个完整项目，贯通 BOSS 直聘桌面端招聘全流程'));
 assert(!projectsSection.includes('针对招聘操作分散、对象易误选和任务易重复的问题'));
 assert(projectsSection.includes('提供岗位发布、候选人初评分、批量及定向沟通、简历索要与收取能力'));
@@ -81,21 +87,27 @@ assert(projectsSection.includes('支持批量打招呼、文档回复、批量�
 assert(!projectsSection.includes('<strong>运行保障</strong>'));
 assert(!projectsSection.includes('<strong>技术栈</strong>'));
 assert(!projectsSection.includes('<strong>开源成果</strong>'));
-assert(projectsSection.includes('<strong>岗位发布</strong>'));
-assert(projectsSection.includes('<strong>候选人筛选</strong>'));
-assert(projectsSection.includes('<strong>消息与简历</strong>'));
-assert(projectsSection.includes('根据岗位要求给候选人评分，说明匹配理由'));
-assert(projectsSection.includes('可以批量或单独联系候选人'));
+assert(!projectsSection.includes('<strong>岗位发布</strong>'));
+assert(!projectsSection.includes('<strong>候选人筛选</strong>'));
+assert(!projectsSection.includes('<strong>消息与简历</strong>'));
+assert(projectsSection.includes('<strong>技术底座</strong>'));
+assert(projectsSection.includes('<strong>操作检查</strong>'));
+assert(projectsSection.includes('<strong>使用规则</strong>'));
+assert(projectsSection.includes('基于 Python、pywinauto 与 Windows UIA'));
+assert(projectsSection.includes('完成后检查岗位发布、消息发送和简历文件是否正确'));
+assert(projectsSection.includes('候选人评分最终由招聘人员判断'));
 assert(/<div class="project-case-heading">[\s\S]*?<\/div>\s*<div class="project-case-intro">/.test(projectsSection));
 assert(/<div class="project-title-row">[\s\S]*?<h3[^>]*>BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集<\/h3>[\s\S]*?<a class="project-repo-link"/.test(projectsSection));
-assert(/\.project-case-study\s*\{[\s\S]*?max-width:\s*58rem;/.test(styleCss));
+assert(/\.project-case-study\s*\{[\s\S]*?max-width:\s*var\(--section-content-max\);/.test(styleCss));
 assert(/\.project-case-study\s*\{[\s\S]*?background:\s*var\(--color-bg-soft\);/.test(styleCss));
 assert(/\.project-case-study \.project-kicker,\s*\.project-case-study \.project-title\s*\{[\s\S]*?text-align:\s*center;/.test(styleCss));
 assert(/@media \(min-width:\s*48rem\)[\s\S]*?\.project-title-row\s*\{[\s\S]*?grid-template-columns:\s*minmax\(8\.5rem, 1fr\) minmax\(0, 42rem\) minmax\(8\.5rem, 1fr\);/.test(styleCss));
 assert(/\.project-title-row \.project-repo-link\s*\{[\s\S]*?flex:\s*0 0 auto;/.test(styleCss));
 assert(/\.project-case-study \.project-desc\s*\{[\s\S]*?text-align:\s*center;[\s\S]*?text-wrap:\s*balance;/.test(styleCss));
+assert(/\.project-compact-details\s*\{[\s\S]*?text-align:\s*center;/.test(styleCss));
+assert(/\.project-compact-details p\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\);[\s\S]*?justify-items:\s*center;/.test(styleCss));
 assert(/@media \(max-width:\s*47\.99rem\)[\s\S]*?\.project-title-row \.project-repo-link\s*\{[\s\S]*?width:\s*auto;/.test(styleCss));
-assert(/\.timeline\s*\{[\s\S]*?max-width:\s*58rem;/.test(styleCss));
+assert(/\.timeline\s*\{[\s\S]*?max-width:\s*var\(--section-content-max\);/.test(styleCss));
 
 for (const removedProjectId of [
   'project-soultalk-ai',

@@ -573,6 +573,80 @@
     });
   }
 
+  function initGithubAccessDialog() {
+    const triggers = Array.from(document.querySelectorAll('[data-github-access-trigger]'));
+    const dialog = document.getElementById('github-access-dialog');
+    if (!triggers.length || !dialog || dialog.tagName !== 'DIALOG') return;
+
+    const confirmLink = dialog.querySelector('[data-github-access-confirm]');
+    const cancelButton = dialog.querySelector('[data-github-access-cancel]');
+    if (!confirmLink || !cancelButton) return;
+
+    let activeTrigger = null;
+
+    function restoreTriggerFocus() {
+      if (!activeTrigger || !activeTrigger.isConnected) return;
+      activeTrigger.focus({ preventScroll: true });
+    }
+
+    function closeDialog(returnValue) {
+      if (typeof dialog.close === 'function' && dialog.open) {
+        dialog.close(returnValue || 'cancel');
+      } else {
+        dialog.removeAttribute('open');
+        dialog.classList.remove('is-keyboard-open');
+        restoreTriggerFocus();
+      }
+    }
+
+    triggers.forEach(function (trigger) {
+      trigger.addEventListener('click', function (event) {
+        const destination = trigger.getAttribute('href');
+        if (!destination) return;
+
+        event.preventDefault();
+        activeTrigger = trigger;
+        confirmLink.setAttribute('href', destination);
+        dialog.classList.toggle('is-keyboard-open', event.detail === 0);
+
+        if (typeof dialog.showModal === 'function') {
+          if (!dialog.open) dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+          cancelButton.focus({ preventScroll: true });
+        }
+      });
+    });
+
+    dialog.addEventListener('click', function (event) {
+      if (event.target === dialog) closeDialog('cancel');
+    });
+
+    dialog.addEventListener('cancel', function (event) {
+      event.preventDefault();
+      closeDialog('cancel');
+    });
+
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' || !dialog.open) return;
+      event.preventDefault();
+      closeDialog('cancel');
+    });
+
+    dialog.addEventListener('close', function () {
+      dialog.classList.remove('is-keyboard-open');
+      restoreTriggerFocus();
+    });
+
+    cancelButton.addEventListener('click', function () {
+      closeDialog('cancel');
+    });
+
+    confirmLink.addEventListener('click', function () {
+      closeDialog('confirmed');
+    });
+  }
+
   function initPageExperience() {
   initVideoBackgroundPlayback();
   initPortfolioGuidance();
@@ -581,6 +655,7 @@
   initToolchainCarousel();
   initToolchainIcons();
   initExperienceDialogs();
+  initGithubAccessDialog();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-anim');
@@ -696,6 +771,18 @@
   const form = root.querySelector('[data-assistant-form]');
   const input = root.querySelector('[data-assistant-input]');
   const sendBtn = root.querySelector('[data-assistant-send]');
+  const resident = root.querySelector('[data-assistant-resident]');
+  const summaryCard = document.querySelector('#hero .hero-summary-card');
+  const summaryCopyElements = summaryCard ? Array.from(summaryCard.querySelectorAll([
+    '.hero-summary-eyebrow',
+    '.hero-summary-title',
+    '.hero-summary-intro',
+    '.hero-summary-result-label',
+    '.hero-summary-result-value',
+    '.hero-summary-directions',
+    '.hero-summary-assistant p',
+    '.hero-summary-chat'
+  ].join(','))) : [];
   const promptBtns = Array.from(root.querySelectorAll('[data-assistant-prompt]'));
   const openBtns = Array.from(document.querySelectorAll('[data-assistant-open]'));
   const endpoint = '/api/chat';
@@ -718,6 +805,269 @@
   let isResponding = false;
   let activeRequestController = null;
   let lastOpenTrigger = null;
+  let summaryCopyAvoidanceFrame = 0;
+  let summaryCopyAvoidanceX = 0;
+  let summaryCopyAvoidanceY = 0;
+  let summaryCopyResizeObserver = null;
+  let summaryCopyVisibilityObserver = null;
+
+  function createPlainRect(rect, offsetX, offsetY) {
+    const x = offsetX || 0;
+    const y = offsetY || 0;
+    return {
+      left: rect.left - x,
+      right: rect.right - x,
+      top: rect.top - y,
+      bottom: rect.bottom - y,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  function translatePlainRect(rect, offsetX, offsetY) {
+    return {
+      left: rect.left + offsetX,
+      right: rect.right + offsetX,
+      top: rect.top + offsetY,
+      bottom: rect.bottom + offsetY,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  function expandPlainRect(rect, amount) {
+    return {
+      left: rect.left - amount,
+      right: rect.right + amount,
+      top: rect.top - amount,
+      bottom: rect.bottom + amount,
+      width: rect.width + amount * 2,
+      height: rect.height + amount * 2
+    };
+  }
+
+  function rectanglesOverlap(first, second) {
+    return first.left < second.right &&
+      first.right > second.left &&
+      first.top < second.bottom &&
+      first.bottom > second.top;
+  }
+
+  function unionPlainRects(rects) {
+    if (!rects.length) return null;
+    return rects.reduce(function (union, rect) {
+      return {
+        left: Math.min(union.left, rect.left),
+        right: Math.max(union.right, rect.right),
+        top: Math.min(union.top, rect.top),
+        bottom: Math.max(union.bottom, rect.bottom),
+        width: Math.max(union.right, rect.right) - Math.min(union.left, rect.left),
+        height: Math.max(union.bottom, rect.bottom) - Math.min(union.top, rect.top)
+      };
+    });
+  }
+
+  function getSummaryCopyRects() {
+    const copyRects = [];
+    summaryCopyElements.forEach(function (element) {
+      if (!element.getClientRects().length) return;
+
+      if (element.classList.contains('hero-summary-chat')) {
+        copyRects.push(expandPlainRect(createPlainRect(element.getBoundingClientRect()), 4));
+        return;
+      }
+
+      const walker = document.createTreeWalker(element, window.NodeFilter ? window.NodeFilter.SHOW_TEXT : 4);
+      let textNode = walker.nextNode();
+      while (textNode) {
+        if (textNode.textContent && textNode.textContent.trim()) {
+          const range = document.createRange();
+          range.selectNodeContents(textNode);
+          Array.from(range.getClientRects()).forEach(function (rect) {
+            if (rect.width > 0 && rect.height > 0) {
+              copyRects.push(expandPlainRect(createPlainRect(rect), 4));
+            }
+          });
+          range.detach();
+        }
+        textNode = walker.nextNode();
+      }
+    });
+    return copyRects;
+  }
+
+  function getVisibleInterfaceRects() {
+    return ['.floating-nav', '.site-header'].map(function (selector) {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const style = window.getComputedStyle(element);
+      const rect = createPlainRect(element.getBoundingClientRect());
+      if (style.visibility === 'hidden' || style.display === 'none' || Number(style.opacity) === 0 || element.inert || element.getAttribute('aria-hidden') === 'true' || rect.width <= 0 || rect.height <= 0) return null;
+      if (rect.bottom <= 0 || rect.top >= window.innerHeight) return null;
+      return expandPlainRect(rect, 4);
+    }).filter(Boolean);
+  }
+
+  function setSummaryCopyAvoidance(offsetX, offsetY) {
+    summaryCopyAvoidanceX = Math.abs(offsetX) < 0.25 ? 0 : offsetX;
+    summaryCopyAvoidanceY = Math.abs(offsetY) < 0.25 ? 0 : offsetY;
+    if (!resident) return;
+    resident.style.setProperty('--assistant-avoid-x', summaryCopyAvoidanceX.toFixed(2) + 'px');
+    resident.style.setProperty('--assistant-avoid-y', summaryCopyAvoidanceY.toFixed(2) + 'px');
+    root.classList.toggle('is-avoiding-summary-copy', Boolean(summaryCopyAvoidanceX || summaryCopyAvoidanceY));
+  }
+
+  function updateSummaryCopyAvoidance() {
+    summaryCopyAvoidanceFrame = 0;
+    if (!resident || !summaryCard || !toggleBtn) return;
+
+    if (root.classList.contains('is-hidden')) {
+      setSummaryCopyAvoidance(0, 0);
+      return;
+    }
+
+    const cardRect = summaryCard.getBoundingClientRect();
+    const visualViewport = window.visualViewport;
+    const viewport = {
+      left: visualViewport ? visualViewport.offsetLeft : 0,
+      top: visualViewport ? visualViewport.offsetTop : 0,
+      right: (visualViewport ? visualViewport.offsetLeft + visualViewport.width : window.innerWidth),
+      bottom: (visualViewport ? visualViewport.offsetTop + visualViewport.height : window.innerHeight)
+    };
+    if (cardRect.right <= viewport.left || cardRect.left >= viewport.right || cardRect.bottom <= viewport.top || cardRect.top >= viewport.bottom) {
+      setSummaryCopyAvoidance(0, 0);
+      return;
+    }
+
+    const avatarParts = [toggleBtn, hideBtn].filter(Boolean).map(function (element) {
+      return createPlainRect(element.getBoundingClientRect(), summaryCopyAvoidanceX, summaryCopyAvoidanceY);
+    });
+    const avatarBounds = unionPlainRects(avatarParts);
+    const summaryCopyRects = getSummaryCopyRects();
+    if (!avatarBounds || !summaryCopyRects.length) {
+      setSummaryCopyAvoidance(0, 0);
+      return;
+    }
+
+    const baseOverlapsCopy = avatarParts.some(function (part) {
+      return summaryCopyRects.some(function (copyRect) {
+        return rectanglesOverlap(part, copyRect);
+      });
+    });
+    if (!baseOverlapsCopy) {
+      setSummaryCopyAvoidance(0, 0);
+      return;
+    }
+
+    const interfaceRects = getVisibleInterfaceRects();
+    const obstacles = summaryCopyRects.concat(interfaceRects);
+    const viewportPadding = 8;
+    const xOffsets = [
+      0,
+      summaryCopyAvoidanceX,
+      viewport.left + viewportPadding - avatarBounds.left,
+      viewport.right - viewportPadding - avatarBounds.right
+    ];
+    const yOffsets = [
+      0,
+      summaryCopyAvoidanceY,
+      viewport.top + viewportPadding - avatarBounds.top,
+      viewport.bottom - viewportPadding - avatarBounds.bottom
+    ];
+    obstacles.forEach(function (obstacle) {
+      xOffsets.push(obstacle.left - avatarBounds.right, obstacle.right - avatarBounds.left);
+      yOffsets.push(obstacle.top - avatarBounds.bottom, obstacle.bottom - avatarBounds.top);
+    });
+
+    const unique = function (values) {
+      return Array.from(new Set(values.map(function (value) {
+        return Math.round(value * 4) / 4;
+      })));
+    };
+    const candidateIsSafe = function (candidate, candidateObstacles) {
+      const shiftedParts = avatarParts.map(function (part) {
+        return translatePlainRect(part, candidate.x, candidate.y);
+      });
+      const shiftedBounds = unionPlainRects(shiftedParts);
+      if (!shiftedBounds || shiftedBounds.left < viewport.left + viewportPadding || shiftedBounds.right > viewport.right - viewportPadding) return false;
+      if (shiftedBounds.top < viewport.top + viewportPadding || shiftedBounds.bottom > viewport.bottom - viewportPadding) return false;
+
+      return shiftedParts.every(function (part) {
+        return candidateObstacles.every(function (obstacle) {
+          return !rectanglesOverlap(part, obstacle);
+        });
+      });
+    };
+
+    const currentCandidate = { x: summaryCopyAvoidanceX, y: summaryCopyAvoidanceY };
+    if ((summaryCopyAvoidanceX || summaryCopyAvoidanceY) && candidateIsSafe(currentCandidate, obstacles)) return;
+
+    const candidates = [];
+    unique(xOffsets).forEach(function (offsetX) {
+      unique(yOffsets).forEach(function (offsetY) {
+        candidates.push({
+          x: offsetX,
+          y: offsetY,
+          score: Math.hypot(offsetX * 1.08, offsetY) + (offsetX && offsetY ? 6 : 0)
+        });
+      });
+    });
+    candidates.sort(function (first, second) {
+      return first.score - second.score;
+    });
+
+    const safeCandidate = candidates.find(function (candidate) {
+      return candidateIsSafe(candidate, obstacles);
+    });
+
+    if (safeCandidate) setSummaryCopyAvoidance(safeCandidate.x, safeCandidate.y);
+    else {
+      const copySafeCandidate = candidates.find(function (candidate) {
+        return candidateIsSafe(candidate, summaryCopyRects);
+      });
+      if (copySafeCandidate) setSummaryCopyAvoidance(copySafeCandidate.x, copySafeCandidate.y);
+    }
+  }
+
+  function scheduleSummaryCopyAvoidance() {
+    if (summaryCopyAvoidanceFrame) return;
+    summaryCopyAvoidanceFrame = window.requestAnimationFrame(updateSummaryCopyAvoidance);
+  }
+
+  window.addEventListener('scroll', scheduleSummaryCopyAvoidance, { passive: true });
+  window.addEventListener('resize', scheduleSummaryCopyAvoidance);
+  window.addEventListener('hashchange', scheduleSummaryCopyAvoidance);
+  window.addEventListener('load', scheduleSummaryCopyAvoidance, { once: true });
+  document.addEventListener('site:ready', scheduleSummaryCopyAvoidance, { once: true });
+  document.addEventListener('visibilitychange', scheduleSummaryCopyAvoidance);
+  document.addEventListener('transitionend', function (event) {
+    if (summaryCard && summaryCard.contains(event.target)) scheduleSummaryCopyAvoidance();
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleSummaryCopyAvoidance);
+    window.visualViewport.addEventListener('scroll', scheduleSummaryCopyAvoidance);
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(scheduleSummaryCopyAvoidance);
+  }
+  if ('IntersectionObserver' in window && summaryCard) {
+    summaryCopyVisibilityObserver = new IntersectionObserver(scheduleSummaryCopyAvoidance, {
+      threshold: [0, 0.01, 0.25, 0.5, 0.75, 1]
+    });
+    summaryCopyVisibilityObserver.observe(summaryCard);
+  }
+  if ('ResizeObserver' in window && resident && summaryCard) {
+    summaryCopyResizeObserver = new ResizeObserver(scheduleSummaryCopyAvoidance);
+    summaryCopyResizeObserver.observe(document.documentElement);
+    summaryCopyResizeObserver.observe(resident);
+    summaryCopyResizeObserver.observe(summaryCard);
+    summaryCopyElements.forEach(function (element) {
+      summaryCopyResizeObserver.observe(element);
+    });
+  }
+  window.setTimeout(scheduleSummaryCopyAvoidance, 0);
+  window.setTimeout(scheduleSummaryCopyAvoidance, 240);
+  window.setTimeout(scheduleSummaryCopyAvoidance, 720);
 
   function loadHistory() {
     try {
@@ -1299,6 +1649,8 @@
     } else if (!isOpen && panel.contains(document.activeElement) && lastOpenTrigger) {
       lastOpenTrigger.focus({ preventScroll: true });
     }
+
+    scheduleSummaryCopyAvoidance();
   }
 
   function setHidden(isHidden, options) {
@@ -1309,6 +1661,7 @@
     if (opts.persist !== false && localStore) {
       localStore.setItem(hiddenStorageKey, isHidden ? 'true' : 'false');
     }
+    scheduleSummaryCopyAvoidance();
   }
 
   function setResponding(nextState) {
@@ -1563,4 +1916,5 @@
   setOpen(false);
   setHidden(localStore ? localStore.getItem(hiddenStorageKey) === 'true' : false, { persist: false });
   renderHistory();
+  scheduleSummaryCopyAvoidance();
 })();

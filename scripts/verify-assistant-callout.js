@@ -73,9 +73,14 @@ const guardComment = 'Regression guard: keep the assistant intro bubble visible 
 const guardStart = css.indexOf(guardComment);
 const guardScope = guardStart === -1 ? '' : css.slice(guardStart);
 const stylesheetVersions = Array.from(html.matchAll(/style\.css\?v=([^"']+)/g), (match) => match[1]);
+const scriptVersions = Array.from(html.matchAll(/script\.js\?v=([^"']+)/g), (match) => match[1]);
 const baseCalloutBlock = ruleBlocks(css, '.assistant-callout')[0] || '';
 const fixedAssistantBlock = ruleBlocks(css, '.site-assistant').find((block) => /position\s*:\s*fixed\b/.test(block)) || '';
 const launcherBlock = ruleBlocks(css, '.assistant-launcher')[0] || '';
+const residentBlock = ruleBlocks(css, '.assistant-resident')[0] || '';
+const avoidanceStart = script.indexOf('const summaryCopyElements');
+const avoidanceEnd = script.indexOf('function loadHistory', avoidanceStart);
+const avoidanceScope = avoidanceStart === -1 || avoidanceEnd === -1 ? '' : script.slice(avoidanceStart, avoidanceEnd);
 
 if (!/<p\s+class="assistant-callout"\s+aria-hidden="true">/.test(html)) {
   fail('assistant callout must be non-interactive hint text');
@@ -94,6 +99,81 @@ if (!/pointer-events\s*:\s*none\b/.test(fixedAssistantBlock)) {
 }
 if (!/pointer-events\s*:\s*auto\b/.test(launcherBlock)) {
   fail('assistant launcher must remain clickable');
+}
+if (!/right\s*:\s*max\(0\.25rem,\s*env\(safe-area-inset-right\)\)/.test(fixedAssistantBlock)) {
+  fail('desktop assistant must dock inside the dedicated right safety rail');
+}
+if (!/--assistant-icon-size\s*:\s*110px/.test(fixedAssistantBlock) ||
+    !/--assistant-frame-size\s*:\s*100px/.test(fixedAssistantBlock) ||
+    !/--assistant-sprite-width\s*:\s*9200px/.test(fixedAssistantBlock) ||
+    !/--assistant-sprite-end\s*:\s*-9100px/.test(fixedAssistantBlock)) {
+  fail('desktop assistant must keep the original 110px launcher and 100px artwork frame');
+}
+if (!/--assistant-icon-size\s*:\s*80px/.test(tablet) ||
+    !/--assistant-frame-size\s*:\s*72px/.test(tablet) ||
+    !/--assistant-sprite-width\s*:\s*6624px/.test(tablet) ||
+    !/--assistant-sprite-end\s*:\s*-6552px/.test(tablet)) {
+  fail('tablet assistant must keep its original responsive dimensions');
+}
+if (!/--assistant-icon-size\s*:\s*64px/.test(phone) ||
+    !/--assistant-frame-size\s*:\s*58px/.test(phone) ||
+    !/--assistant-sprite-width\s*:\s*5336px/.test(phone) ||
+    !/--assistant-sprite-end\s*:\s*-5278px/.test(phone)) {
+  fail('phone assistant must keep its original responsive dimensions');
+}
+if (css.includes('--assistant-art-scale') || /@media \(min-width:\s*112rem\)/.test(css)) {
+  fail('assistant artwork must not be simulated with scale or delayed to an ultra-wide breakpoint');
+}
+if (css.includes('is-avoiding-hero-summary') || script.includes('is-avoiding-hero-summary')) {
+  fail('automatic summary collision state must not hide the avatar or callout');
+}
+if (!avoidanceScope) {
+  fail('missing bounded summary-copy avoidance implementation');
+} else {
+  for (const selector of [
+    '.hero-summary-eyebrow',
+    '.hero-summary-title',
+    '.hero-summary-intro',
+    '.hero-summary-result-label',
+    '.hero-summary-result-value',
+    '.hero-summary-directions',
+    '.hero-summary-assistant p',
+    '.hero-summary-chat'
+  ]) {
+    if (!avoidanceScope.includes(selector)) fail(`summary-copy avoidance is missing ${selector}`);
+  }
+  for (const requiredCode of [
+    'document.createTreeWalker',
+    'NodeFilter.SHOW_TEXT',
+    'document.createRange()',
+    'range.getClientRects()',
+    "element.classList.contains('hero-summary-chat')",
+    'element.getBoundingClientRect()',
+    '[toggleBtn, hideBtn].filter(Boolean)',
+    'rectanglesOverlap',
+    'currentCandidate',
+    'viewport.left + viewportPadding - avatarBounds.left',
+    'viewport.right - viewportPadding - avatarBounds.right',
+    'viewport.top + viewportPadding - avatarBounds.top',
+    'viewport.bottom - viewportPadding - avatarBounds.bottom'
+  ]) {
+    if (!avoidanceScope.includes(requiredCode)) fail(`summary-copy avoidance is missing: ${requiredCode}`);
+  }
+  if (avoidanceScope.includes('callout') || avoidanceScope.includes('setInterval') || avoidanceScope.includes("resident.setAttribute('aria-hidden'") || avoidanceScope.includes("root.classList.contains('is-open')")) {
+    fail('summary-copy avoidance must exclude the callout, permanent polling, automatic hiding, and open-state reset');
+  }
+  if (/safeCandidate[\s\S]*?else\s+setSummaryCopyAvoidance\(0,\s*0\)/.test(avoidanceScope)) {
+    fail('failed avoidance must not return the avatar to a known collision point');
+  }
+}
+if (!/translate\s*:\s*var\(--assistant-avoid-x,\s*0px\)\s+var\(--assistant-avoid-y,\s*0px\)/.test(residentBlock)) {
+  fail('assistant avatar group must use layout-safe translate variables for avoidance');
+}
+if (script.includes("resident.setAttribute('aria-hidden'")) {
+  fail('runtime collision handling must never aria-hide the assistant avatar');
+}
+if (!html.includes('assistant-glyph-avoidance-1')) {
+  fail('assistant glyph-avoidance cache token is missing');
 }
 
 if (!tablet) fail('missing max-width: 74.99rem assistant breakpoint');
@@ -126,6 +206,10 @@ if (!stylesheetVersions.length) {
   fail(`style.css cache-busting query is not tied to this fix: ${stylesheetVersions[0]}`);
 }
 
+if (scriptVersions.length !== 1 || !scriptVersions[0].includes('assistant-glyph-avoidance-1')) {
+  fail('script.js cache-busting query must identify the assistant glyph-avoidance revision');
+}
+
 if (process.exitCode) process.exit(process.exitCode);
 
-console.log('Assistant callout mobile regression check passed.');
+console.log('Assistant callout pass-through, original sizing, and glyph-avoidance regression check passed.');
