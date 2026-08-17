@@ -800,6 +800,8 @@
   const sessionStore = getSafeStorage('sessionStorage');
   const idleInputPlaceholder = input.getAttribute('placeholder') || '';
   const desktopFocusQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const bottomDockedAssistantQuery = window.matchMedia('(max-width: 74.99rem)');
+  const phoneAssistantSafeRailQuery = window.matchMedia('(max-width: 35rem)');
 
   let history = loadHistory();
   let isResponding = false;
@@ -808,6 +810,8 @@
   let summaryCopyAvoidanceFrame = 0;
   let summaryCopyAvoidanceX = 0;
   let summaryCopyAvoidanceY = 0;
+  let summaryCopyViewportMotionTimer = 0;
+  let summaryCopyViewportMoving = false;
   let summaryCopyResizeObserver = null;
   let summaryCopyVisibilityObserver = null;
 
@@ -926,6 +930,11 @@
       return;
     }
 
+    if (phoneAssistantSafeRailQuery.matches) {
+      setSummaryCopyAvoidance(0, 0);
+      return;
+    }
+
     const cardRect = summaryCard.getBoundingClientRect();
     const visualViewport = window.visualViewport;
     const viewport = {
@@ -1030,12 +1039,35 @@
   }
 
   function scheduleSummaryCopyAvoidance() {
+    if (summaryCopyViewportMoving) return;
     if (summaryCopyAvoidanceFrame) return;
     summaryCopyAvoidanceFrame = window.requestAnimationFrame(updateSummaryCopyAvoidance);
   }
 
-  window.addEventListener('scroll', scheduleSummaryCopyAvoidance, { passive: true });
-  window.addEventListener('resize', scheduleSummaryCopyAvoidance);
+  function scheduleSummaryCopyAvoidanceAfterViewportMotion() {
+    if (!bottomDockedAssistantQuery.matches) {
+      if (summaryCopyViewportMotionTimer) window.clearTimeout(summaryCopyViewportMotionTimer);
+      summaryCopyViewportMotionTimer = 0;
+      summaryCopyViewportMoving = false;
+      scheduleSummaryCopyAvoidance();
+      return;
+    }
+
+    summaryCopyViewportMoving = true;
+    if (summaryCopyAvoidanceFrame) {
+      window.cancelAnimationFrame(summaryCopyAvoidanceFrame);
+      summaryCopyAvoidanceFrame = 0;
+    }
+    if (summaryCopyViewportMotionTimer) window.clearTimeout(summaryCopyViewportMotionTimer);
+    summaryCopyViewportMotionTimer = window.setTimeout(function () {
+      summaryCopyViewportMotionTimer = 0;
+      summaryCopyViewportMoving = false;
+      scheduleSummaryCopyAvoidance();
+    }, 160);
+  }
+
+  window.addEventListener('scroll', scheduleSummaryCopyAvoidanceAfterViewportMotion, { passive: true });
+  window.addEventListener('resize', scheduleSummaryCopyAvoidanceAfterViewportMotion);
   window.addEventListener('hashchange', scheduleSummaryCopyAvoidance);
   window.addEventListener('load', scheduleSummaryCopyAvoidance, { once: true });
   document.addEventListener('site:ready', scheduleSummaryCopyAvoidance, { once: true });
@@ -1044,8 +1076,8 @@
     if (summaryCard && summaryCard.contains(event.target)) scheduleSummaryCopyAvoidance();
   });
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', scheduleSummaryCopyAvoidance);
-    window.visualViewport.addEventListener('scroll', scheduleSummaryCopyAvoidance);
+    window.visualViewport.addEventListener('resize', scheduleSummaryCopyAvoidanceAfterViewportMotion);
+    window.visualViewport.addEventListener('scroll', scheduleSummaryCopyAvoidanceAfterViewportMotion);
   }
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(scheduleSummaryCopyAvoidance);

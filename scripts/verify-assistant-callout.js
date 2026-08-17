@@ -121,6 +121,9 @@ if (!/--assistant-icon-size\s*:\s*64px/.test(phone) ||
     !/--assistant-sprite-end\s*:\s*-5278px/.test(phone)) {
   fail('phone assistant must keep its original responsive dimensions');
 }
+if (!ruleBlocks(phone, '.hero-summary-card').some((block) => /padding-right\s*:\s*calc\(3\.25rem\s*\+\s*max\(1rem,\s*env\(safe-area-inset-right,\s*0px\)\)\)/.test(block))) {
+  fail('phone summary card must reserve a fixed right rail for the assistant avatar');
+}
 if (css.includes('--assistant-art-scale') || /@media \(min-width:\s*112rem\)/.test(css)) {
   fail('assistant artwork must not be simulated with scale or delayed to an ultra-wide breakpoint');
 }
@@ -152,6 +155,13 @@ if (!avoidanceScope) {
     '[toggleBtn, hideBtn].filter(Boolean)',
     'rectanglesOverlap',
     'currentCandidate',
+    "window.matchMedia('(max-width: 74.99rem)')",
+    "window.matchMedia('(max-width: 35rem)')",
+    'phoneAssistantSafeRailQuery',
+    'summaryCopyViewportMoving',
+    'scheduleSummaryCopyAvoidanceAfterViewportMotion',
+    'window.cancelAnimationFrame(summaryCopyAvoidanceFrame)',
+    '}, 160)',
     'viewport.left + viewportPadding - avatarBounds.left',
     'viewport.right - viewportPadding - avatarBounds.right',
     'viewport.top + viewportPadding - avatarBounds.top',
@@ -165,15 +175,38 @@ if (!avoidanceScope) {
   if (/safeCandidate[\s\S]*?else\s+setSummaryCopyAvoidance\(0,\s*0\)/.test(avoidanceScope)) {
     fail('failed avoidance must not return the avatar to a known collision point');
   }
+  if (!/function scheduleSummaryCopyAvoidance\(\)\s*\{\s*if \(summaryCopyViewportMoving\) return;/.test(avoidanceScope)) {
+    fail('mobile viewport motion must gate per-frame avoidance writes until scrolling settles');
+  }
+  if (!/if \(phoneAssistantSafeRailQuery\.matches\)\s*\{\s*setSummaryCopyAvoidance\(0,\s*0\);\s*return;\s*\}/.test(avoidanceScope)) {
+    fail('phone safe-rail mode must keep the avatar at one stable dock position');
+  }
+  for (const motionBinding of [
+    "window.addEventListener('scroll', scheduleSummaryCopyAvoidanceAfterViewportMotion",
+    "window.addEventListener('resize', scheduleSummaryCopyAvoidanceAfterViewportMotion)",
+    "window.visualViewport.addEventListener('resize', scheduleSummaryCopyAvoidanceAfterViewportMotion)",
+    "window.visualViewport.addEventListener('scroll', scheduleSummaryCopyAvoidanceAfterViewportMotion)"
+  ]) {
+    if (!avoidanceScope.includes(motionBinding)) fail(`missing debounced viewport-motion binding: ${motionBinding}`);
+  }
 }
 if (!/translate\s*:\s*var\(--assistant-avoid-x,\s*0px\)\s+var\(--assistant-avoid-y,\s*0px\)/.test(residentBlock)) {
   fail('assistant avatar group must use layout-safe translate variables for avoidance');
+}
+if (!/will-change\s*:\s*translate/.test(residentBlock)) {
+  fail('assistant avatar movement must stay on a compositor-friendly translate layer');
 }
 if (script.includes("resident.setAttribute('aria-hidden'")) {
   fail('runtime collision handling must never aria-hide the assistant avatar');
 }
 if (!html.includes('assistant-glyph-avoidance-1')) {
   fail('assistant glyph-avoidance cache token is missing');
+}
+if ((html.match(/assistant-scroll-stability-1/g) || []).length !== 3) {
+  fail('assistant scroll-stability cache token must cover both stylesheets and the script');
+}
+if ((html.match(/assistant-mobile-safe-rail-1/g) || []).length !== 3) {
+  fail('assistant mobile safe-rail cache token must cover both stylesheets and the script');
 }
 
 if (!tablet) fail('missing max-width: 74.99rem assistant breakpoint');

@@ -3726,6 +3726,7 @@ html.hero-motion-done .hero-summary-step {
   gap: 0.75rem;
   pointer-events: none;
   translate: var(--assistant-avoid-x, 0px) var(--assistant-avoid-y, 0px);
+  will-change: translate;
 }
 
 .assistant-launcher {
@@ -4554,6 +4555,10 @@ html.dark .assistant-bubble.is-markdown a {
 }
 
 @media (max-width: 35rem) {
+  .hero-summary-card {
+    padding-right: calc(3.25rem + max(1rem, env(safe-area-inset-right, 0px)));
+  }
+
   .site-assistant {
     right: max(1rem, env(safe-area-inset-right));
     bottom: max(1rem, env(safe-area-inset-bottom));
