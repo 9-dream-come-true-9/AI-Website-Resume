@@ -801,7 +801,6 @@
   const idleInputPlaceholder = input.getAttribute('placeholder') || '';
   const desktopFocusQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
   const bottomDockedAssistantQuery = window.matchMedia('(max-width: 74.99rem)');
-  const phoneAssistantSafeRailQuery = window.matchMedia('(max-width: 35rem)');
 
   let history = loadHistory();
   let isResponding = false;
@@ -926,11 +925,6 @@
     if (!resident || !summaryCard || !toggleBtn) return;
 
     if (root.classList.contains('is-hidden')) {
-      setSummaryCopyAvoidance(0, 0);
-      return;
-    }
-
-    if (phoneAssistantSafeRailQuery.matches) {
       setSummaryCopyAvoidance(0, 0);
       return;
     }

@@ -121,8 +121,8 @@ if (!/--assistant-icon-size\s*:\s*64px/.test(phone) ||
     !/--assistant-sprite-end\s*:\s*-5278px/.test(phone)) {
   fail('phone assistant must keep its original responsive dimensions');
 }
-if (!ruleBlocks(phone, '.hero-summary-card').some((block) => /padding-right\s*:\s*calc\(3\.25rem\s*\+\s*max\(1rem,\s*env\(safe-area-inset-right,\s*0px\)\)\)/.test(block))) {
-  fail('phone summary card must reserve a fixed right rail for the assistant avatar');
+if (ruleBlocks(phone, '.hero-summary-card').some((block) => /padding(?:-right)?\s*:/.test(block))) {
+  fail('phone summary card must inherit the same balanced padding as the profile card');
 }
 if (css.includes('--assistant-art-scale') || /@media \(min-width:\s*112rem\)/.test(css)) {
   fail('assistant artwork must not be simulated with scale or delayed to an ultra-wide breakpoint');
@@ -156,8 +156,6 @@ if (!avoidanceScope) {
     'rectanglesOverlap',
     'currentCandidate',
     "window.matchMedia('(max-width: 74.99rem)')",
-    "window.matchMedia('(max-width: 35rem)')",
-    'phoneAssistantSafeRailQuery',
     'summaryCopyViewportMoving',
     'scheduleSummaryCopyAvoidanceAfterViewportMotion',
     'window.cancelAnimationFrame(summaryCopyAvoidanceFrame)',
@@ -178,8 +176,8 @@ if (!avoidanceScope) {
   if (!/function scheduleSummaryCopyAvoidance\(\)\s*\{\s*if \(summaryCopyViewportMoving\) return;/.test(avoidanceScope)) {
     fail('mobile viewport motion must gate per-frame avoidance writes until scrolling settles');
   }
-  if (!/if \(phoneAssistantSafeRailQuery\.matches\)\s*\{\s*setSummaryCopyAvoidance\(0,\s*0\);\s*return;\s*\}/.test(avoidanceScope)) {
-    fail('phone safe-rail mode must keep the avatar at one stable dock position');
+  if (avoidanceScope.includes('phoneAssistantSafeRailQuery')) {
+    fail('phone layouts must use collision avoidance instead of shrinking the summary card content area');
   }
   for (const motionBinding of [
     "window.addEventListener('scroll', scheduleSummaryCopyAvoidanceAfterViewportMotion",
@@ -205,8 +203,8 @@ if (!html.includes('assistant-glyph-avoidance-1')) {
 if ((html.match(/assistant-scroll-stability-1/g) || []).length !== 3) {
   fail('assistant scroll-stability cache token must cover both stylesheets and the script');
 }
-if ((html.match(/assistant-mobile-safe-rail-1/g) || []).length !== 3) {
-  fail('assistant mobile safe-rail cache token must cover both stylesheets and the script');
+if ((html.match(/hero-summary-mobile-fill-1/g) || []).length !== 3) {
+  fail('mobile summary fill cache token must cover both stylesheets and the script');
 }
 
 if (!tablet) fail('missing max-width: 74.99rem assistant breakpoint');

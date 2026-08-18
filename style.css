@@ -4555,10 +4555,6 @@ html.dark .assistant-bubble.is-markdown a {
 }
 
 @media (max-width: 35rem) {
-  .hero-summary-card {
-    padding-right: calc(3.25rem + max(1rem, env(safe-area-inset-right, 0px)));
-  }
-
   .site-assistant {
     right: max(1rem, env(safe-area-inset-right));
     bottom: max(1rem, env(safe-area-inset-bottom));
