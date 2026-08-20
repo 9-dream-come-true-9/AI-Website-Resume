@@ -164,12 +164,43 @@ assert.strictEqual(chatHandler.isPortfolioLinkQuestion('请给我总作品集的
 assert.strictEqual(chatHandler.isPortfolioLinkQuestion('请给我 FDE 落地能力的飞书链接'), false);
 assert.strictEqual(chatHandler.isPortfolioLinkQuestion('Vibe Coding 作品的飞书链接在哪'), false);
 assert.strictEqual(chatHandler.isPortfolioLinkQuestion('查看 SoulTalk PRD 的飞书文档'), false);
+assert.strictEqual(
+  chatHandler.isPortfolioLinkQuestion('请按四大模块导览赵亚杰的 AI 作品集《AI 实验室》，概括代表作品并附对应入口链接'),
+  false,
+  'Portfolio guide preset must call the model instead of returning the fixed portfolio link'
+);
+assert(chatSource.includes('enable_thinking: false'));
+assert(chatSource.includes('max_completion_tokens: maxCompletionTokens'));
+assert(chatSource.includes("const needsContinuation = streamResult.finishReason === 'length' || stoppedMidStructure"));
+assert(chatSource.includes('CONTINUATION_PROMPT'));
+assert(chatSource.includes('INCOMPLETE_ENDING_PROMPT'));
 
 const expectedGreeting = '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！';
 assert(pageScript.includes(expectedGreeting), 'Assistant greeting was not updated from the new knowledge base');
 assert(pageScript.includes("portfolio-text-agent-history-v9"), 'Assistant history version must expose the new greeting');
 assert(pageHtml.includes('assistant-knowledge-v3'), 'script.js cache-buster must include the greeting update');
 assert(pageHtml.includes('assistant-prompts-grid-2'), 'style.css cache-buster must include the prompt layout update');
+assert.strictEqual((pageHtml.match(/assistant-stream-integrity-1/g) || []).length, 3, 'Stream integrity cache token must cover both stylesheet links and script.js');
+assert.strictEqual((pageHtml.match(/assistant-answer-copy-1/g) || []).length, 3, 'Answer copy cache token must cover both stylesheet links and script.js');
+assert(pageScript.includes('createAssistantMessageActions(messageState)'));
+assert(pageScript.includes('createCopyMessageButton(messageState, true)'));
+assert(pageScript.includes('let receivedDone = false'));
+assert(pageScript.includes("new Error('Stream ended before the done event')"));
+assert(pageScript.includes('while (!receivedDone)'));
+assert(pageScript.includes('await reader.cancel()'));
+assert(pageScript.includes('streamRenderIntervalMs = 60'));
+assert(pageScript.includes("if (opts.autoScroll !== false) messagesEl.scrollTop = messagesEl.scrollHeight"));
+assert(pageScript.includes('includeInContext: !item || item.includeInContext !== false'));
+assert(pageScript.includes('excludeHistoryItemFromContext(currentUserHistoryItem)'));
+assert(!/if \(isStreaming\) \{\s*pendingStreamAnswer = answer;\s*flushStreamRender\(\);/s.test(pageScript), 'Completed streams must not render the full answer twice');
+assert(pageScript.includes("messagesEl.setAttribute('aria-busy', 'true')"));
+assert(pageScript.includes("messagesEl.setAttribute('aria-busy', 'false')"));
+assert(pageHtml.includes('role="log" aria-live="polite" aria-relevant="additions" aria-busy="false"'));
+assert(pageScript.includes("setActionFeedback(copyBtn, '复制失败', 'error')"));
+assert(pageScript.includes('if (textarea && textarea.parentNode) textarea.remove()'));
+assert(pageStyles.includes('.assistant-message-copy-answer'));
+assert(pageStyles.includes('.assistant-message-action-label'));
+assert(pageStyles.includes('.assistant-message-action[data-feedback="error"]'));
 assert(/\.assistant-prompts\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);/s.test(pageStyles));
 const assistantPromptsRule = pageStyles.match(/\.assistant-prompts\s*\{([^}]*)\}/s);
 assert(assistantPromptsRule, 'Assistant prompt container rule is missing');

@@ -790,6 +790,7 @@
   const feishuLoginNote = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
   const storageKey = 'portfolio-text-agent-history-v9';
   const hiddenStorageKey = 'portfolio-text-agent-hidden-v1';
+  const streamRenderIntervalMs = 60;
   const temporaryAssistantErrors = [
     'AI 服务暂时没有返回有效回答，请稍后再试。',
     'AI 服务暂时没有返回有效回答，请稍后再试',
@@ -1102,7 +1103,11 @@
       return parsed.slice(-18).map(function (item) {
         const role = item && item.role === 'user' ? 'user' : 'bot';
         const text = role === 'bot' ? stripModelThinking(item && item.text) : String((item && item.text) || '');
-        return { role: role, text: text };
+        return {
+          role: role,
+          text: text,
+          includeInContext: !item || item.includeInContext !== false
+        };
       }).filter(function (item) {
         return item.text && !(item.role === 'bot' && isTemporaryAssistantError(item.text));
       });
@@ -1143,18 +1148,22 @@
     meta.textContent = role === 'user' ? '你' : 'AI求职小杰君';
 
     if (!opts.skipHistory && !opts.thinking) {
-      messageState.historyItem = { role: role, text: messageState.text };
+      messageState.historyItem = { role: role, text: messageState.text, includeInContext: true };
       history.push(messageState.historyItem);
       saveHistory();
     }
 
     wrap.appendChild(bubble);
-    if (role === 'user' && !opts.thinking) {
-      wrap.appendChild(createUserMessageActions(wrap, messageState, bubble));
+    if (!opts.thinking) {
+      if (role === 'user') {
+        wrap.appendChild(createUserMessageActions(wrap, messageState, bubble));
+      } else if (!isTemporaryAssistantError(messageState.text)) {
+        wrap.appendChild(createAssistantMessageActions(messageState));
+      }
     }
     wrap.appendChild(meta);
     messagesEl.appendChild(wrap);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (opts.autoScroll !== false) messagesEl.scrollTop = messagesEl.scrollHeight;
 
     return wrap;
   }
@@ -1163,12 +1172,7 @@
     const actions = document.createElement('div');
     actions.className = 'assistant-message-actions';
 
-    const copyBtn = createMessageActionButton('复制', [
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">',
-      '<rect width="14" height="14" x="8" y="8" rx="2"></rect>',
-      '<path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>',
-      '</svg>'
-    ].join(''));
+    const copyBtn = createCopyMessageButton(messageState, false);
 
     const editBtn = createMessageActionButton('编辑', [
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">',
@@ -1177,12 +1181,6 @@
       '</svg>'
     ].join(''));
 
-    copyBtn.addEventListener('click', function () {
-      copyTextToClipboard(messageState.text).then(function (copied) {
-        setActionFeedback(copyBtn, copied ? '已复制' : '复制失败');
-      });
-    });
-
     editBtn.addEventListener('click', function () {
       startInlineMessageEdit(wrap, bubble, actions, messageState);
     });
@@ -1190,6 +1188,36 @@
     actions.appendChild(copyBtn);
     actions.appendChild(editBtn);
     return actions;
+  }
+
+  function createAssistantMessageActions(messageState) {
+    const actions = document.createElement('div');
+    actions.className = 'assistant-message-actions assistant-message-actions-bot';
+    actions.appendChild(createCopyMessageButton(messageState, true));
+    return actions;
+  }
+
+  function createCopyMessageButton(messageState, showLabel) {
+    const labelHtml = showLabel
+      ? '<span class="assistant-message-action-label" data-action-label>复制</span>'
+      : '';
+    const copyBtn = createMessageActionButton('复制', [
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">',
+      '<rect width="14" height="14" x="8" y="8" rx="2"></rect>',
+      '<path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>',
+      '</svg>',
+      labelHtml
+    ].join(''));
+
+    if (showLabel) copyBtn.classList.add('assistant-message-copy-answer');
+    copyBtn.addEventListener('click', function () {
+      copyTextToClipboard(messageState.text).then(function (copied) {
+        setActionFeedback(copyBtn, copied ? '已复制' : '复制失败', copied ? 'success' : 'error');
+      }).catch(function () {
+        setActionFeedback(copyBtn, '复制失败', 'error');
+      });
+    });
+    return copyBtn;
   }
 
   function createMessageActionButton(label, iconHtml) {
@@ -1253,7 +1281,10 @@
       }
 
       messageState.text = displayText;
-      if (messageState.historyItem) messageState.historyItem.text = displayText;
+      if (messageState.historyItem) {
+        messageState.historyItem.text = displayText;
+        messageState.historyItem.includeInContext = true;
+      }
       saveHistory();
 
       bubble.classList.remove('is-editing');
@@ -1312,51 +1343,89 @@
       saveHistory();
     }
 
-    const requestHistory = history.slice(0, -1).slice(-8);
-    await runAssistantResponse(question, requestHistory);
+    const requestHistory = getContextHistory(history.slice(0, -1));
+    await runAssistantResponse(question, requestHistory, messageState.historyItem);
   }
 
-  function setActionFeedback(button, label) {
-    const originalLabel = button.getAttribute('aria-label') || '';
-    const originalTitle = button.title || originalLabel;
+  function getContextHistory(items) {
+    return (Array.isArray(items) ? items : history).filter(function (item) {
+      return item && item.includeInContext !== false;
+    }).slice(-8);
+  }
+
+  function excludeHistoryItemFromContext(item) {
+    if (!item || item.includeInContext === false) return;
+    item.includeInContext = false;
+    saveHistory();
+  }
+
+  function setActionFeedback(button, label, state) {
+    const originalLabel = button.dataset.originalLabel
+      || button.getAttribute('aria-label')
+      || '';
+    const originalTitle = button.dataset.originalTitle
+      || button.title
+      || originalLabel;
+    const visibleLabel = button.querySelector('[data-action-label]');
+    const originalVisibleLabel = button.dataset.originalVisibleLabel
+      || (visibleLabel ? visibleLabel.textContent : '');
+
+    button.dataset.originalLabel = originalLabel;
+    button.dataset.originalTitle = originalTitle;
+    if (visibleLabel) button.dataset.originalVisibleLabel = originalVisibleLabel;
     button.setAttribute('aria-label', label);
     button.title = label;
-    button.dataset.feedback = 'true';
+    button.dataset.feedback = state || 'success';
+    if (visibleLabel) visibleLabel.textContent = label;
 
-    window.setTimeout(function () {
+    if (button._assistantFeedbackTimer) {
+      window.clearTimeout(button._assistantFeedbackTimer);
+    }
+
+    button._assistantFeedbackTimer = window.setTimeout(function () {
       button.setAttribute('aria-label', originalLabel);
       button.title = originalTitle;
+      if (visibleLabel) visibleLabel.textContent = originalVisibleLabel;
       delete button.dataset.feedback;
-    }, 1200);
+      delete button.dataset.originalLabel;
+      delete button.dataset.originalTitle;
+      delete button.dataset.originalVisibleLabel;
+      delete button._assistantFeedbackTimer;
+    }, 1400);
   }
 
   function copyTextToClipboard(text) {
     const value = String(text || '');
     if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(value).then(function () {
-        return true;
-      }).catch(function () {
-        return fallbackCopyText(value);
-      });
+      try {
+        return Promise.resolve(navigator.clipboard.writeText(value)).then(function () {
+          return true;
+        }).catch(function () {
+          return fallbackCopyText(value);
+        });
+      } catch (error) {
+        return Promise.resolve(fallbackCopyText(value));
+      }
     }
     return Promise.resolve(fallbackCopyText(value));
   }
 
   function fallbackCopyText(text) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.top = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
+    let textarea = null;
 
     try {
+      textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
       return document.execCommand('copy');
     } catch (error) {
       return false;
     } finally {
-      textarea.remove();
+      if (textarea && textarea.parentNode) textarea.remove();
     }
   }
 
@@ -1721,7 +1790,7 @@
   }
 
   async function callModel(question, requestHistory, onStreamUpdate, signal) {
-    const conversationHistory = Array.isArray(requestHistory) ? requestHistory : history.slice(-8);
+    const conversationHistory = Array.isArray(requestHistory) ? requestHistory : getContextHistory(history);
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -1744,6 +1813,7 @@
       return answer || 'AI 服务暂时没有返回有效回答，请稍后再试。';
     } catch (error) {
       if (isAbortError(error, signal)) throw error;
+      if (error && error.partialAnswer !== undefined) throw error;
       return 'AI 服务暂时不可用，请稍后再试。';
     }
   }
@@ -1753,6 +1823,7 @@
     const decoder = new TextDecoder();
     let buffer = '';
     let answer = '';
+    let receivedDone = false;
 
     function consumeEvent(block) {
       if (!block.trim()) return;
@@ -1765,27 +1836,64 @@
       if (!dataText) return;
 
       const data = JSON.parse(dataText);
-      if (eventName === 'error') throw new Error(data.error || 'Stream failed');
+      if (eventName === 'error') {
+        const streamError = new Error(data.error || 'Stream failed');
+        streamError.partialAnswer = typeof data.answer === 'string' ? data.answer : answer;
+        throw streamError;
+      }
       if (eventName === 'delta' && typeof data.delta === 'string') {
         answer += data.delta;
         if (typeof onStreamUpdate === 'function') onStreamUpdate(answer);
       }
       if (eventName === 'done' && typeof data.answer === 'string') {
         answer = data.answer;
+        receivedDone = true;
+        if (data.complete === false) {
+          const incompleteError = new Error('Stream ended with an incomplete answer');
+          incompleteError.partialAnswer = answer;
+          throw incompleteError;
+        }
       }
     }
 
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      buffer += decoder.decode(chunk.value, { stream: true });
-      const events = buffer.split(/\r?\n\r?\n/);
-      buffer = events.pop() || '';
-      events.forEach(consumeEvent);
+    try {
+      while (!receivedDone) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        buffer += decoder.decode(chunk.value, { stream: true });
+        const events = buffer.split(/\r?\n\r?\n/);
+        buffer = events.pop() || '';
+        for (const eventBlock of events) {
+          consumeEvent(eventBlock);
+          if (receivedDone) break;
+        }
+      }
+
+      if (receivedDone) {
+        try {
+          await reader.cancel();
+        } catch (error) {
+          // The semantic done event already delivered a complete answer.
+        }
+      } else {
+        buffer += decoder.decode();
+        if (buffer) consumeEvent(buffer);
+      }
+      if (!receivedDone) {
+        const incompleteError = new Error('Stream ended before the done event');
+        incompleteError.partialAnswer = answer;
+        throw incompleteError;
+      }
+    } catch (error) {
+      if (error && error.partialAnswer === undefined) error.partialAnswer = answer;
+      try {
+        await reader.cancel();
+      } catch (cancelError) {
+        // Preserve the original stream error.
+      }
+      throw error;
     }
 
-    buffer += decoder.decode();
-    if (buffer) consumeEvent(buffer);
     answer = stripModelThinking(answer).trim();
     return answer || 'AI 服务暂时没有返回有效回答，请稍后再试。';
   }
@@ -1795,12 +1903,13 @@
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   }
 
-  async function runAssistantResponse(question, requestHistory) {
+  async function runAssistantResponse(question, requestHistory, currentUserHistoryItem) {
     if (isResponding) return;
 
     const requestController = new AbortController();
     activeRequestController = requestController;
     setResponding(true);
+    messagesEl.setAttribute('aria-busy', 'true');
     const thinking = appendMessage('bot', '正在整理回答…', {
       thinking: true,
       skipHistory: true
@@ -1809,49 +1918,92 @@
     const bubble = thinking.querySelector('.assistant-bubble');
     let isStreaming = false;
     let streamedAnswer = '';
+    let pendingStreamAnswer = '';
+    let streamRenderTimer = 0;
+
+    function shouldFollowAssistantStream() {
+      return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+    }
+
+    function flushStreamRender() {
+      streamRenderTimer = 0;
+      const visibleAnswer = stripModelThinking(pendingStreamAnswer).trim();
+      if (!visibleAnswer || requestController.signal.aborted) return;
+
+      const shouldFollowStream = shouldFollowAssistantStream();
+      streamedAnswer = visibleAnswer;
+      if (!isStreaming) {
+        isStreaming = true;
+        delete thinking.dataset.thinking;
+        bubble.classList.add('is-markdown');
+      }
+      bubble.innerHTML = renderMarkdown(visibleAnswer);
+      if (shouldFollowStream) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function scheduleStreamRender(partialAnswer) {
+      pendingStreamAnswer = partialAnswer;
+      if (streamRenderTimer) return;
+      streamRenderTimer = window.setTimeout(flushStreamRender, streamRenderIntervalMs);
+    }
+
+    function cancelPendingStreamRender() {
+      if (!streamRenderTimer) return;
+      window.clearTimeout(streamRenderTimer);
+      streamRenderTimer = 0;
+    }
 
     try {
       const answer = await callModel(question, requestHistory, function (partialAnswer) {
-        const visibleAnswer = stripModelThinking(partialAnswer).trim();
-        if (!visibleAnswer || requestController.signal.aborted) return;
-        streamedAnswer = visibleAnswer;
-        if (!isStreaming) {
-          isStreaming = true;
-          delete thinking.dataset.thinking;
-          bubble.classList.add('is-markdown');
-        }
-        bubble.innerHTML = renderMarkdown(visibleAnswer);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        if (!partialAnswer || requestController.signal.aborted) return;
+        scheduleStreamRender(partialAnswer);
       }, requestController.signal);
 
-      if (isStreaming) {
-        bubble.innerHTML = renderMarkdown(answer);
-        if (!isTemporaryAssistantError(answer)) {
-          history.push({ role: 'bot', text: answer });
-          saveHistory();
-        }
-      } else {
-        thinking.remove();
-        appendMessage('bot', answer, {
-          skipHistory: isTemporaryAssistantError(answer)
-        });
-      }
+      cancelPendingStreamRender();
+      const shouldFollowStream = shouldFollowAssistantStream();
+      thinking.remove();
+      appendMessage('bot', answer, {
+        skipHistory: isTemporaryAssistantError(answer),
+        autoScroll: shouldFollowStream
+      });
+      if (isTemporaryAssistantError(answer)) excludeHistoryItemFromContext(currentUserHistoryItem);
     } catch (error) {
-      if (!isAbortError(error, requestController.signal)) {
+      cancelPendingStreamRender();
+      if (requestController.signal.aborted && (streamedAnswer || pendingStreamAnswer)) {
+        const stoppedAnswer = stripModelThinking(pendingStreamAnswer || streamedAnswer).trim();
+        const shouldFollowStream = shouldFollowAssistantStream();
         thinking.remove();
-        appendMessage('bot', 'AI 服务暂时不可用，请稍后再试。', { skipHistory: true });
-      } else if (isStreaming && streamedAnswer) {
-        bubble.innerHTML = renderMarkdown(streamedAnswer);
-        history.push({ role: 'bot', text: streamedAnswer });
-        saveHistory();
+        appendMessage('bot', stoppedAnswer + '\n\n> 已停止生成。', { autoScroll: shouldFollowStream });
+      } else if (!isAbortError(error, requestController.signal) && (error.partialAnswer || streamedAnswer || pendingStreamAnswer)) {
+        const partialAnswer = stripModelThinking(error.partialAnswer || streamedAnswer || pendingStreamAnswer).trim();
+        const interruptionNotice = /回答内容过长|模型服务提前停止|回答传输中断/.test(partialAnswer)
+          ? ''
+          : '\n\n> 回答传输中断，内容可能不完整，请重新提问。';
+        const shouldFollowStream = shouldFollowAssistantStream();
+        thinking.remove();
+        appendMessage('bot', partialAnswer + interruptionNotice, {
+          skipHistory: true,
+          autoScroll: shouldFollowStream
+        });
+        excludeHistoryItemFromContext(currentUserHistoryItem);
+      } else if (!isAbortError(error, requestController.signal)) {
+        const shouldFollowStream = shouldFollowAssistantStream();
+        thinking.remove();
+        appendMessage('bot', 'AI 服务暂时不可用，请稍后再试。', {
+          skipHistory: true,
+          autoScroll: shouldFollowStream
+        });
+        excludeHistoryItemFromContext(currentUserHistoryItem);
       } else {
         thinking.remove();
+        excludeHistoryItemFromContext(currentUserHistoryItem);
       }
     } finally {
       if (activeRequestController === requestController) {
         activeRequestController = null;
         setResponding(false);
       }
+      messagesEl.setAttribute('aria-busy', 'false');
     }
   }
 
@@ -1859,11 +2011,12 @@
     const text = String(question || '').trim();
     if (!text || isResponding) return;
 
-    const requestHistory = history.slice(-8);
+    const requestHistory = getContextHistory(history);
     appendMessage('user', text);
+    const currentUserHistoryItem = history[history.length - 1];
     input.value = '';
     autoResizeInput();
-    await runAssistantResponse(text, requestHistory);
+    await runAssistantResponse(text, requestHistory, currentUserHistoryItem);
   }
 
   toggleBtn.addEventListener('click', function (event) {

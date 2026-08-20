@@ -4,6 +4,10 @@ const path = require('path');
 const rateBuckets = new Map();
 const PORTFOLIO_LINK = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
 const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
+const DEFAULT_MAX_COMPLETION_TOKENS = 2000;
+const DEFAULT_MAX_CONTINUATIONS = 1;
+const CONTINUATION_PROMPT = '上一个回答因输出长度上限中断。请直接从中断处继续，只补全尚未完成的内容，不重复开场、已输出的段落或标题，并确保回答完整收尾。';
+const INCOMPLETE_ENDING_PROMPT = '上一个回答的末尾停在标题、编号或未完成的句子。请直接从中断位置补全剩余内容，不重复已有内容，并确保回答完整收尾。';
 const ASSISTANT_KNOWLEDGE_BASE = fs.readFileSync(
   path.join(__dirname, 'assistant-knowledge-base.md'),
   'utf8'
@@ -66,6 +70,18 @@ module.exports = async function handler(req, res) {
 
   const apiBase = String(process.env.AI_API_BASE || 'https://api.deepseek.com').replace(/\/+$/, '');
   const model = process.env.AI_MODEL || 'deepseek-chat';
+  const maxCompletionTokens = readBoundedInteger(
+    process.env.AI_MAX_COMPLETION_TOKENS,
+    DEFAULT_MAX_COMPLETION_TOKENS,
+    1200,
+    8000
+  );
+  const maxContinuations = readBoundedInteger(
+    process.env.AI_MAX_CONTINUATIONS,
+    DEFAULT_MAX_CONTINUATIONS,
+    0,
+    2
+  );
   const history = Array.isArray(req.body.history) ? req.body.history.slice(-8) : [];
   const upstreamController = new AbortController();
   const abortUpstream = function () {
@@ -88,6 +104,7 @@ module.exports = async function handler(req, res) {
         '数量口径要随来源说明：简历中的“20+ 个技能模块”是环内圈实习阶段口径；AI 实验室中的“28 个 Skill”是当前全景清单，且其中包含 BOSS 直聘的 4 个开源 Skill，不能相加成 32 个。',
         '涉及会随时间变化的模型或工具能力对比时，要表述为知识库记录时的个人实测，不要包装成永久结论。',
         '不要输出思考过程、推理过程、分析草稿或 <think> 标签，只输出可以直接展示给用户的最终答案。',
+        '回答必须完整收尾，默认控制在 1200 个汉字以内。若使用编号、表格或承诺介绍多个部分，必须完成每一部分，禁止停在标题、编号、冒号或半句话后。',
         `每次提供飞书作品集链接时，必须严格分成下面两段，链接行只能包含链接，不能把提示放进 Markdown 链接文字或 URL：\n飞书作品集：${PORTFOLIO_LINK}\n\n${FEISHU_LOGIN_NOTE}`,
         '如果知识库没有对应信息，就明确说明资料暂未提供，不要猜测或补写。',
         `两份最新来源的完整知识库：\n<knowledge_base>\n${ASSISTANT_KNOWLEDGE_BASE}\n</knowledge_base>`,
@@ -106,50 +123,125 @@ module.exports = async function handler(req, res) {
     { role: 'user', content: userMessage.slice(0, 2000) }
   ];
 
-  try {
-    const upstream = await fetch(`${apiBase}/chat/completions`, {
-      method: 'POST',
-      signal: upstreamController.signal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.5,
-        enable_thinking: true,
-        max_completion_tokens: 1000,
-        stream: true
-      })
-    });
+  let answer = '';
+  let responseStarted = false;
 
-    if (!upstream.ok) {
-      await upstream.text().catch(() => '');
-      res.status(upstream.status).json({ error: 'AI request failed' });
-      return;
+  try {
+    let requestMessages = messages;
+    let streamResult = { answer: '', finishReason: null, sawDone: false };
+    let continuationWasRequired = false;
+    let lastContinuationHadContent = true;
+
+    for (let attempt = 0; attempt <= maxContinuations; attempt += 1) {
+      const upstream = await fetch(`${apiBase}/chat/completions`, {
+        method: 'POST',
+        signal: upstreamController.signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model,
+          messages: requestMessages,
+          temperature: 0.35,
+          max_completion_tokens: maxCompletionTokens,
+          stream: true,
+          stream_options: { include_usage: true },
+          ...getThinkingOptions(apiBase, model)
+        })
+      });
+
+      if (!upstream.ok) {
+        await upstream.text().catch(() => '');
+        if (!responseStarted) {
+          res.status(upstream.status).json({ error: 'AI request failed' });
+          return;
+        }
+        throw new Error('AI continuation request failed');
+      }
+
+      if (!responseStarted) {
+        responseStarted = true;
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        if (typeof res.flushHeaders === 'function') res.flushHeaders();
+      }
+
+      try {
+        streamResult = await streamModelAnswer(upstream, res);
+      } catch (error) {
+        if (error && error.partialAnswer) {
+          answer = attempt > 0
+            ? mergeContinuationAnswer(answer, error.partialAnswer)
+            : answer + error.partialAnswer;
+        }
+        throw error;
+      }
+      if (attempt > 0) {
+        lastContinuationHadContent = Boolean(streamResult.answer.trim());
+        answer = mergeContinuationAnswer(answer, streamResult.answer);
+      } else {
+        answer = streamResult.answer;
+      }
+
+      const normalFinish = streamResult.finishReason === 'stop'
+        || (!streamResult.finishReason && streamResult.sawDone);
+      const stoppedMidStructure = normalFinish && isLikelyIncompleteAnswer(answer);
+      const needsContinuation = streamResult.finishReason === 'length' || stoppedMidStructure;
+      if (!needsContinuation || attempt >= maxContinuations) break;
+
+      continuationWasRequired = true;
+      requestMessages = [
+        ...messages,
+        { role: 'assistant', content: answer },
+        {
+          role: 'user',
+          content: streamResult.finishReason === 'length'
+            ? CONTINUATION_PROMPT
+            : INCOMPLETE_ENDING_PROMPT
+        }
+      ];
     }
 
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+    if (!streamResult.sawDone && !streamResult.finishReason) {
+      throw new Error('AI stream ended before a completion signal');
+    }
 
-    let answer = await streamModelAnswer(upstream, res);
+    const normalFinish = streamResult.finishReason === 'stop'
+      || (!streamResult.finishReason && streamResult.sawDone);
+    const complete = normalFinish
+      && (!continuationWasRequired || lastContinuationHadContent)
+      && !isLikelyIncompleteAnswer(answer);
+    if (!complete) {
+      const incompleteNotice = streamResult.finishReason === 'length'
+        ? '\n\n> 回答内容过长，自动续写后仍达到服务输出上限；请继续追问尚未展开的部分。'
+        : '\n\n> 模型服务提前停止了这次回答，请重新提问。';
+      answer += incompleteNotice;
+      writeStreamEvent(res, 'delta', { delta: incompleteNotice });
+    }
+
     if (!answer) {
       answer = '暂时没有拿到有效回答，可以换个方式问我项目、经历或联系方式。';
       writeStreamEvent(res, 'delta', { delta: answer });
     }
-    writeStreamEvent(res, 'done', { answer: answer });
+    writeStreamEvent(res, 'done', {
+      answer: stripModelThinking(answer),
+      complete,
+      finishReason: streamResult.finishReason || (streamResult.sawDone ? 'stop' : 'unknown')
+    });
     res.end();
   } catch (error) {
     if (upstreamController.signal.aborted || res.destroyed) {
       return;
     }
     if (res.headersSent && !res.writableEnded) {
-      writeStreamEvent(res, 'error', { error: 'AI service unavailable' });
+      writeStreamEvent(res, 'error', {
+        error: 'AI service unavailable',
+        answer: stripModelThinking(answer)
+      });
       res.end();
     } else if (!res.headersSent) {
       res.status(502).json({ error: 'AI service unavailable' });
@@ -160,44 +252,97 @@ module.exports = async function handler(req, res) {
 };
 
 async function streamModelAnswer(upstream, res) {
-  if (!upstream.body || typeof upstream.body.getReader !== 'function') return '';
+  if (!upstream.body || typeof upstream.body.getReader !== 'function') {
+    return { answer: '', finishReason: null, sawDone: false };
+  }
 
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
   let answer = '';
+  let finishReason = null;
+  let sawDone = false;
 
   function consumeLine(line) {
     if (!line.startsWith('data:')) return;
     const data = line.slice(5).trim();
-    if (!data || data === '[DONE]') return;
+    if (!data) return;
+    if (data === '[DONE]') {
+      sawDone = true;
+      return;
+    }
 
+    let payload;
     try {
-      const payload = JSON.parse(data);
-      const delta = payload && payload.choices && payload.choices[0]
-        ? payload.choices[0].delta
-        : null;
-      const content = delta && typeof delta.content === 'string' ? delta.content : '';
-      if (!content) return;
-      answer += content;
-      writeStreamEvent(res, 'delta', { delta: content });
+      payload = JSON.parse(data);
     } catch (error) {
       // Ignore malformed or non-JSON SSE metadata lines from the upstream service.
+      return;
     }
+
+    if (payload && payload.error) {
+      const upstreamError = new Error('Upstream stream returned an error');
+      upstreamError.partialAnswer = stripModelThinking(answer);
+      throw upstreamError;
+    }
+    const choice = payload && payload.choices && payload.choices[0]
+      ? payload.choices[0]
+      : null;
+    if (choice && typeof choice.finish_reason === 'string' && choice.finish_reason) {
+      finishReason = choice.finish_reason;
+    }
+    const delta = choice ? choice.delta : null;
+    const content = delta && typeof delta.content === 'string' ? delta.content : '';
+    if (!content) return;
+    answer += content;
+    writeStreamEvent(res, 'delta', { delta: content });
   }
 
-  while (true) {
-    const chunk = await reader.read();
-    if (chunk.done) break;
-    buffer += decoder.decode(chunk.value, { stream: true });
-    const lines = buffer.split(/\r?\n/);
-    buffer = lines.pop() || '';
-    lines.forEach(consumeLine);
+  try {
+    while (!sawDone && !finishReason) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        consumeLine(line);
+        if (sawDone || finishReason) break;
+      }
+    }
+
+    if (sawDone || finishReason) {
+      try {
+        await reader.cancel();
+      } catch (error) {
+        // A semantic completion signal is sufficient even if transport cleanup fails.
+      }
+    } else {
+      buffer += decoder.decode();
+      if (buffer) {
+        for (const line of buffer.split(/\r?\n/)) {
+          consumeLine(line);
+          if (sawDone || finishReason) break;
+        }
+      }
+    }
+  } catch (error) {
+    try {
+      await reader.cancel();
+    } catch (cancelError) {
+      // Preserve the original stream error.
+    }
+    if (error && error.partialAnswer === undefined) {
+      error.partialAnswer = stripModelThinking(answer);
+    }
+    throw error;
   }
 
-  buffer += decoder.decode();
-  if (buffer) buffer.split(/\r?\n/).forEach(consumeLine);
-  return stripModelThinking(answer);
+  return {
+    answer: stripModelThinking(answer),
+    finishReason,
+    sawDone
+  };
 }
 
 function writeStreamEvent(res, event, payload) {
@@ -262,11 +407,60 @@ function isPortfolioLinkQuestion(message) {
     && /链接|地址|观看|查看|打开|入口|提示|登录|登陆|看/.test(text);
   if (!asksForPortfolioLink) return false;
 
+  const asksForPortfolioContent = /导览|概括|总结|介绍|分析|四大模块|模块|代表作品|能力|项目|经历|对比|推荐|招聘视角/.test(text);
+  if (asksForPortfolioContent) return false;
+
   const asksForSpecificItem = /fde|vibe\s*coding|skill|校园点餐|智能客服|个人网站|ai\s*工具|工具敏感度|生视频|广告成片|办公\s*ai|客户成功|企业微信|产品全链路|产品原型|axure|任务看板|数据洞察|综合损益|竞品|spamguard|影刀|prd|soultalk|生态运营|uml|boss|实习|简历/.test(text);
   return !asksForSpecificItem;
 }
 
 module.exports.isPortfolioLinkQuestion = isPortfolioLinkQuestion;
+module.exports.streamModelAnswer = streamModelAnswer;
+module.exports.getThinkingOptions = getThinkingOptions;
+module.exports.isLikelyIncompleteAnswer = isLikelyIncompleteAnswer;
+module.exports.mergeContinuationAnswer = mergeContinuationAnswer;
+
+function getThinkingOptions(apiBase, model) {
+  const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
+  if (/minimax[-\/]?m3/.test(String(model || '').toLowerCase())) {
+    return { thinking: { type: 'disabled' } };
+  }
+  if (/qwen|dashscope|aliyuncs/.test(provider)) {
+    return { enable_thinking: false };
+  }
+  return {};
+}
+
+function isLikelyIncompleteAnswer(value) {
+  const text = stripModelThinking(value).trim();
+  if (!text) return false;
+  if (/(?:^|\n)\s*(?:\d+[.、)]|[一二三四五六七八九十]+[.、]|[-*+])\s*$/.test(text)) return true;
+  if (/[:：]\s*$/.test(text)) return true;
+  return ((text.match(/```/g) || []).length % 2) === 1;
+}
+
+function mergeContinuationAnswer(existingAnswer, continuationAnswer) {
+  const existing = String(existingAnswer || '');
+  const continuation = String(continuationAnswer || '');
+  if (!existing) return continuation;
+  if (!continuation) return existing;
+
+  const maxOverlap = Math.min(240, existing.length, continuation.length);
+  for (let size = maxOverlap; size >= 8; size -= 1) {
+    if (existing.slice(-size) === continuation.slice(0, size)) {
+      return existing + continuation.slice(size);
+    }
+  }
+  const needsListMarkerSpace = /(?:^|\n)\s*(?:\d+[.、)]|[-*+])$/.test(existing)
+    && /^[A-Za-z0-9\u3400-\u9FFF]/.test(continuation);
+  return existing + (needsListMarkerSpace ? ' ' : '') + continuation;
+}
+
+function readBoundedInteger(value, fallback, minimum, maximum) {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(maximum, Math.max(minimum, parsed));
+}
 
 function getClientIp(req) {
   const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();

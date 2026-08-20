@@ -4150,6 +4150,13 @@ html.dark .assistant-panel {
   display: none;
 }
 
+.assistant-message-actions-bot {
+  align-self: flex-start;
+  justify-content: flex-start;
+  padding-right: 0;
+  padding-left: 0.125rem;
+}
+
 .assistant-message-action {
   width: 1.625rem;
   height: 1.625rem;
@@ -4176,15 +4183,35 @@ html.dark .assistant-panel {
   transform: translateY(1px);
 }
 
-.assistant-message-action[data-feedback="true"] {
+.assistant-message-action[data-feedback="success"] {
   color: #0f9f6e;
   background: rgba(15, 159, 110, 0.12);
   border-color: rgba(15, 159, 110, 0.2);
 }
 
+.assistant-message-action[data-feedback="error"] {
+  color: #d14343;
+  background: rgba(209, 67, 67, 0.1);
+  border-color: rgba(209, 67, 67, 0.2);
+}
+
 .assistant-message-action svg {
   width: 0.9375rem;
   height: 0.9375rem;
+}
+
+.assistant-message-copy-answer {
+  width: auto;
+  min-width: 3.5rem;
+  padding: 0 0.5rem;
+  gap: 0.3rem;
+}
+
+.assistant-message-action-label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .assistant-edit-action {
