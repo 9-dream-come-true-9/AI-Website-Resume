@@ -859,8 +859,6 @@
   const promptBtns = Array.from(root.querySelectorAll('[data-assistant-prompt]'));
   const openBtns = Array.from(document.querySelectorAll('[data-assistant-open]'));
   const endpoint = '/api/chat';
-  const challengeEndpoint = '/api/chat-challenge';
-  const turnstileHost = root.querySelector('[data-assistant-turnstile]');
   const portfolioLink = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
   const feishuLoginNote = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
   const assistantGreeting = '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！';
@@ -872,9 +870,7 @@
     'AI 服务暂时没有返回有效回答，请稍后再试',
     'AI 服务暂时不可用，请稍后再试。',
     'AI 服务暂时不可用，请稍后再试',
-    '当前访问较多或额度已达到上限，请稍后再试。',
-    '请完成访问验证后再发送问题。',
-    'AI 助手保护服务暂时不可用，请稍后再试。'
+    '当前访问较多或额度已达到上限，请稍后再试。'
   ];
   const localStore = getSafeStorage('localStorage');
   const sessionStore = getSafeStorage('sessionStorage');
@@ -893,7 +889,6 @@
   let summaryCopyViewportMoving = false;
   let summaryCopyResizeObserver = null;
   let summaryCopyVisibilityObserver = null;
-  let turnstileScriptPromise = null;
 
   function createPlainRect(rect, offsetX, offsetY) {
     const x = offsetX || 0;
@@ -1865,207 +1860,16 @@
     );
   }
 
-  function loadTurnstileScript() {
-    if (window.turnstile && typeof window.turnstile.render === 'function') {
-      return Promise.resolve(window.turnstile);
-    }
-    if (turnstileScriptPromise) return turnstileScriptPromise;
-
-    turnstileScriptPromise = new Promise(function (resolve, reject) {
-      let script = document.querySelector('script[data-chat-turnstile-script]');
-      let settled = false;
-      let loadTimer = 0;
-
-      if (script && (script.dataset.chatTurnstileState === 'failed'
-        || script.dataset.chatTurnstileState === 'loaded')) {
-        script.remove();
-        script = null;
-      }
-
-      if (!script) {
-        script = document.createElement('script');
-        script.async = true;
-        script.defer = true;
-        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-        script.dataset.chatTurnstileScript = 'true';
-        script.dataset.chatTurnstileState = 'loading';
-      }
-
-      function cleanupListeners() {
-        script.removeEventListener('load', onLoad);
-        script.removeEventListener('error', onError);
-        if (loadTimer) window.clearTimeout(loadTimer);
-      }
-
-      function finish(error) {
-        if (settled) return;
-        settled = true;
-        cleanupListeners();
-        if (error) {
-          script.dataset.chatTurnstileState = 'failed';
-          script.remove();
-          reject(error);
-          return;
-        }
-        resolve(window.turnstile);
-      }
-
-      function onLoad() {
-        script.dataset.chatTurnstileState = 'loaded';
-        if (window.turnstile && typeof window.turnstile.render === 'function') {
-          finish(null);
-        } else {
-          finish(new Error('Turnstile script unavailable'));
-        }
-      }
-
-      function onError() {
-        finish(new Error('Turnstile script failed to load'));
-      }
-
-      script.addEventListener('load', onLoad, { once: true });
-      script.addEventListener('error', onError, { once: true });
-      loadTimer = window.setTimeout(function () {
-        finish(new Error('Turnstile script load timed out'));
-      }, 10000);
-      if (!script.isConnected) document.head.appendChild(script);
-    }).catch(function (error) {
-      turnstileScriptPromise = null;
-      throw error;
-    });
-
-    return turnstileScriptPromise;
-  }
-
-  async function requestTurnstileToken(config, signal) {
-    if (!turnstileHost) throw new Error('Turnstile host is missing');
-    const turnstile = await loadTurnstileScript();
-    if (signal && signal.aborted) throw createAbortError();
-
-    turnstileHost.textContent = '';
-    turnstileHost.classList.add('is-active');
-    turnstileHost.setAttribute('aria-hidden', 'false');
-    const compactWidget = window.matchMedia('(max-width: 21.875rem)').matches;
-    turnstileHost.classList.toggle('is-compact', compactWidget);
-
-    return new Promise(function (resolve, reject) {
-      let widgetId = null;
-      let settled = false;
-      let cleaned = false;
-
-      function cleanup() {
-        if (cleaned) return;
-        cleaned = true;
-        if (widgetId !== null && turnstile) {
-          try {
-            if (typeof turnstile.remove === 'function') turnstile.remove(widgetId);
-            else if (typeof turnstile.reset === 'function') turnstile.reset(widgetId);
-          } catch (removeError) {
-            try {
-              if (typeof turnstile.reset === 'function') turnstile.reset(widgetId);
-            } catch (resetError) { /* best effort */ }
-          }
-        }
-        turnstileHost.textContent = '';
-        turnstileHost.classList.remove('is-active');
-        turnstileHost.classList.remove('is-compact');
-        turnstileHost.setAttribute('aria-hidden', 'true');
-      }
-
-      function finish(error, token) {
-        if (settled) return;
-        settled = true;
-        if (signal) signal.removeEventListener('abort', onAbort);
-        if (error) {
-          cleanup();
-          reject(error);
-        } else {
-          // Keep the widget/token alive until the protected POST completes;
-          // resetting before siteverify would risk invalidating the token.
-          resolve({ token, cleanup });
-        }
-      }
-
-      function onAbort() {
-        finish(createAbortError());
-      }
-
-      if (signal) signal.addEventListener('abort', onAbort, { once: true });
-
-      try {
-        widgetId = turnstile.render(turnstileHost, {
-          sitekey: config.siteKey,
-          action: config.action || 'portfolio_chat',
-          execution: 'execute',
-          appearance: 'interaction-only',
-          size: compactWidget ? 'compact' : 'normal',
-          retry: 'never',
-          callback: function (token) { finish(null, token); },
-          'error-callback': function () { finish(new Error('Turnstile validation failed')); },
-          'expired-callback': function () { finish(new Error('Turnstile token expired')); }
-        });
-        turnstile.execute(widgetId);
-      } catch (error) {
-        finish(error);
-      }
-    });
-  }
-
-  function createAbortError() {
-    const error = new Error('Request aborted');
-    error.name = 'AbortError';
-    return error;
-  }
-
-  async function requestChatChallenge(signal) {
-    const response = await fetch(challengeEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      cache: 'no-store',
-      signal: signal,
-      body: '{}'
-    });
-    const contentType = response.headers.get('content-type') || '';
-    const payload = contentType.includes('application/json')
-      ? await response.json().catch(function () { return {}; })
-      : {};
-    if (!response.ok) {
-      const error = new Error(payload.message || payload.error || '访问验证失败');
-      error.status = response.status;
-      error.code = payload.error || '';
-      throw error;
-    }
-    if (payload.mode === 'turnstile') {
-      return requestTurnstileToken(payload, signal);
-    }
-    if (payload.mode === 'hmac') {
-      if (!payload.challengeToken) throw new Error('访问验证令牌为空');
-      return { token: payload.challengeToken, cleanup: null };
-    }
-    if (payload.mode === 'off') return { token: '', cleanup: null };
-    throw new Error('未知的访问验证模式');
-  }
-
   function getAssistantRequestErrorMessage(error) {
     if (error && error.status === 429) return '当前访问较多或额度已达到上限，请稍后再试。';
-    if (error && error.status === 403) return '请完成访问验证后再发送问题。';
-    if (error && error.status === 503) return 'AI 助手保护服务暂时不可用，请稍后再试。';
     return 'AI 服务暂时不可用，请稍后再试。';
   }
 
   async function callModel(question, onStreamUpdate, signal) {
-    let challenge = null;
     try {
-      challenge = await requestChatChallenge(signal);
-      const challengeToken = challenge.token;
-      const requestHeaders = { 'Content-Type': 'application/json' };
-      if (challengeToken) requestHeaders['X-Chat-Challenge'] = challengeToken;
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: requestHeaders,
-        credentials: 'same-origin',
-        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
         signal: signal,
         body: JSON.stringify({
           message: question,
@@ -2091,8 +1895,6 @@
       if (isAbortError(error, signal)) throw error;
       if (error && error.partialAnswer !== undefined) throw error;
       return getAssistantRequestErrorMessage(error);
-    } finally {
-      if (challenge && typeof challenge.cleanup === 'function') challenge.cleanup();
     }
   }
 

@@ -1,14 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const {
-  applyProtectionHeaders,
-  authorizeChat,
-  getLimits,
-  isHostedProduction,
-  releaseChatLease,
-  sendProtectionError
-} = require('./_chat-protection');
 
+const rateBuckets = new Map();
 const PORTFOLIO_LINK = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
 const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
 const DEFAULT_MAX_COMPLETION_TOKENS = 1200;
@@ -39,10 +32,16 @@ ${FEISHU_LOGIN_NOTE}
 
 module.exports = async function handler(req, res) {
   applySecurityHeaders(res);
-  applyProtectionHeaders(res);
 
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const rateLimit = checkRateLimit(getClientIp(req));
+  if (rateLimit.limited) {
+    res.setHeader('Retry-After', String(rateLimit.retryAfter));
+    res.status(429).json({ error: 'Too many requests' });
     return;
   }
 
@@ -52,21 +51,20 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const limits = getLimits();
   let bodyChars = 0;
   try {
     bodyChars = JSON.stringify(req.body || {}).length;
   } catch (error) {
-    bodyChars = limits.maxBodyChars + 1;
+    bodyChars = 8193;
   }
-  if (bodyChars > limits.maxBodyChars) {
+  if (bodyChars > 8192) {
     res.status(413).json({ error: 'Request body too large' });
     return;
   }
-  if (userMessage.length > limits.maxMessageChars) {
+  if (userMessage.length > 800) {
     res.status(413).json({
       error: 'Message too long',
-      message: `问题请控制在 ${limits.maxMessageChars} 个字符以内。`
+      message: '问题请控制在 800 个字符以内。'
     });
     return;
   }
@@ -86,18 +84,10 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  let protectionLease = null;
-  try {
-    protectionLease = await authorizeChat(req, res);
-  } catch (error) {
-    sendProtectionError(res, error);
-    return;
-  }
-
   const apiBase = String(process.env.AI_API_BASE || 'https://api.deepseek.com').replace(/\/+$/, '');
   const model = process.env.AI_MODEL || 'deepseek-chat';
-  // A public hosted endpoint must keep the per-request spend bound even when
-  // an older Vercel environment variable contains a larger value.
+  // Keep the per-request spend guard even without the distributed protection
+  // layer. Hosted deployments must not inherit an old oversized setting.
   const maxCompletionTokenLimit = isHostedProduction() ? 1200 : 8000;
   const maxCompletionTokens = readBoundedInteger(
     process.env.AI_MAX_COMPLETION_TOKENS,
@@ -111,9 +101,6 @@ module.exports = async function handler(req, res) {
     0,
     2
   );
-  // A public hosted endpoint must not inherit an old env value that turns one
-  // visitor request into multiple billable upstream calls. Local development
-  // can still exercise continuation behavior explicitly.
   const maxContinuations = isHostedProduction() ? 0 : configuredContinuations;
   const upstreamController = new AbortController();
   const upstreamTimeoutMs = readBoundedInteger(
@@ -291,7 +278,6 @@ module.exports = async function handler(req, res) {
   } finally {
     clearTimeout(upstreamTimeout);
     res.removeListener('close', abortUpstream);
-    await releaseChatLease(protectionLease);
   }
 };
 
@@ -521,4 +507,51 @@ function readBoundedInteger(value, fallback, minimum, maximum) {
   const parsed = Number.parseInt(String(value || ''), 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(maximum, Math.max(minimum, parsed));
+}
+
+function getClientIp(req) {
+  const forwarded = String(
+    (req && req.headers && (req.headers['x-vercel-forwarded-for']
+      || req.headers['x-real-ip']
+      || req.headers['x-forwarded-for'])) || ''
+  ).split(',')[0].trim();
+  return forwarded || (req && req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
+function checkRateLimit(ip) {
+  const windowMs = Number(process.env.CHAT_RATE_LIMIT_WINDOW_MS || 60000);
+  const max = Number(process.env.CHAT_RATE_LIMIT_MAX || 12);
+  const now = Date.now();
+  let bucket = rateBuckets.get(ip);
+
+  if (!bucket || now - bucket.windowStart >= windowMs) {
+    bucket = { count: 0, windowStart: now };
+  }
+
+  bucket.count += 1;
+  rateBuckets.set(ip, bucket);
+
+  if (bucket.count > max) {
+    return {
+      limited: true,
+      retryAfter: Math.max(1, Math.ceil((bucket.windowStart + windowMs - now) / 1000))
+    };
+  }
+
+  if (rateBuckets.size > 500) {
+    rateBuckets.forEach((item, key) => {
+      if (now - item.windowStart >= windowMs) rateBuckets.delete(key);
+    });
+  }
+
+  return { limited: false, retryAfter: 0 };
+}
+
+function isHostedProduction() {
+  const vercelEnv = String(process.env.VERCEL_ENV || '').toLowerCase();
+  if (vercelEnv === 'development') return false;
+  if (process.env.VERCEL === '1') return true;
+  return process.env.NODE_ENV === 'production'
+    || vercelEnv === 'production'
+    || vercelEnv === 'preview';
 }

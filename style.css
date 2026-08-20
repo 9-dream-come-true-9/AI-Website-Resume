@@ -4516,40 +4516,6 @@ html.dark .assistant-bubble.is-markdown a {
   padding: 0 1rem 0.875rem;
 }
 
-/* Turnstile runs only while a message is being sent. Keep its iframe out of
-   the visual layout while retaining a real render target for accessibility
-   and Cloudflare's interaction fallback. */
-.assistant-turnstile-host {
-  position: fixed;
-  left: -10000px;
-  top: -10000px;
-  width: 318px;
-  height: 83px;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.assistant-turnstile-host.is-compact {
-  width: 168px;
-  height: 158px;
-}
-
-.assistant-turnstile-host.is-active {
-  left: auto;
-  top: auto;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  z-index: 1100;
-  padding: 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  background: var(--color-bg-elev);
-  box-shadow: 0 12px 32px rgba(17, 19, 29, 0.2);
-  opacity: 1;
-  pointer-events: auto;
-}
-
 .assistant-chip {
   min-width: 0;
   width: 100%;

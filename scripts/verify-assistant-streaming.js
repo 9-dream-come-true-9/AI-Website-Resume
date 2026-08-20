@@ -142,7 +142,6 @@ async function runHandler(message, ip, upstreams, history) {
     AI_MAX_COMPLETION_TOKENS: process.env.AI_MAX_COMPLETION_TOKENS,
     AI_MAX_CONTINUATIONS: process.env.AI_MAX_CONTINUATIONS,
     CHAT_CLIENT_TOKEN: process.env.CHAT_CLIENT_TOKEN,
-    CHAT_PROTECTION_MODE: process.env.CHAT_PROTECTION_MODE,
     VERCEL: process.env.VERCEL,
     VERCEL_ENV: process.env.VERCEL_ENV,
     NODE_ENV: process.env.NODE_ENV
@@ -154,7 +153,6 @@ async function runHandler(message, ip, upstreams, history) {
   delete process.env.AI_MAX_COMPLETION_TOKENS;
   process.env.AI_MAX_CONTINUATIONS = '1';
   delete process.env.CHAT_CLIENT_TOKEN;
-  process.env.CHAT_PROTECTION_MODE = 'off';
   delete process.env.VERCEL;
   delete process.env.VERCEL_ENV;
   delete process.env.NODE_ENV;
