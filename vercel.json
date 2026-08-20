@@ -1,5 +1,8 @@
 {
   "functions": {
+    "api/chat.js": {
+      "includeFiles": "api/assistant-knowledge-base.md"
+    },
     "api/download-resume.js": {
       "includeFiles": "assets/resume/**"
     }

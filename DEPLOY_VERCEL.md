@@ -10,6 +10,7 @@ style.css
 script.js
 assets/
 api/chat.js
+api/assistant-knowledge-base.md
 package.json
 vercel.json
 ```

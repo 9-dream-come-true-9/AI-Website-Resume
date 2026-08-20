@@ -788,7 +788,7 @@
   const endpoint = '/api/chat';
   const portfolioLink = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
   const feishuLoginNote = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
-  const storageKey = 'portfolio-text-agent-history-v6';
+  const storageKey = 'portfolio-text-agent-history-v9';
   const hiddenStorageKey = 'portfolio-text-agent-hidden-v1';
   const temporaryAssistantErrors = [
     'AI 服务暂时没有返回有效回答，请稍后再试。',
@@ -1607,7 +1607,7 @@
     if (!history.length) {
       appendMessage(
         'bot',
-        '你好，我是 AI 求职小杰君。你可以问我赵亚杰的 AI 项目、产品能力、实习经历、岗位匹配或联系方式。',
+        '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！',
         { skipHistory: false }
       );
       return;

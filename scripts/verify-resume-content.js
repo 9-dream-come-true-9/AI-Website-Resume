@@ -119,7 +119,7 @@ for (const removedProjectId of [
 
 assert(readme.includes('**核心项目**：BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集'));
 assert(chatApi.includes('个人开源项目只有 1 个：BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集。'));
-assert(chatApi.includes('当用户询问项目时，只介绍 BOSS 直聘 Windows 桌面端 AI 智能体 Skill 合集'));
+assert(chatApi.includes('区分“开源项目”“AI 实验室作品”和“实习项目”'));
 
 for (const staleFact of [
   'AI 营销工具：内容生成与 KOL 推荐',
