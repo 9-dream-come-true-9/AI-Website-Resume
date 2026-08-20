@@ -159,6 +159,19 @@ async function runHandler(message, ip, upstreams) {
       { thinking: { type: 'disabled' } }
     );
     assert.deepStrictEqual(
+      handler.getThinkingOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.0-flash'),
+      { chat_template_kwargs: { enable_thinking: false } }
+    );
+    assert.deepStrictEqual(
+      handler.getThinkingOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.5-flash'),
+      { chat_template_kwargs: { enable_thinking: false } }
+    );
+    assert.deepStrictEqual(
+      handler.getThinkingOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.5-pro'),
+      {},
+      'Agnes Pro is a reasoning model and must not receive an undocumented Flash-only switch'
+    );
+    assert.deepStrictEqual(
       handler.getThinkingOptions('https://api.minimaxi.com/v1', 'MiniMax-M2.7'),
       {}
     );
@@ -184,6 +197,23 @@ async function runHandler(message, ip, upstreams) {
     assert(guideDone, 'Normal model stream must emit a done event');
     assert.strictEqual(guideDone.data.complete, true);
     assert.strictEqual(guideDone.data.answer, '这是模型生成的作品集导览。');
+
+    process.env.AI_API_BASE = 'https://apihub.agnes-ai.com/v1';
+    process.env.AI_MODEL = 'agnes-2.0-flash';
+    const agnes = await runHandler(
+      '请介绍赵亚杰的 AI 产品能力',
+      '127.0.0.109',
+      [normalStream('Agnes 已关闭思考模式。')]
+    );
+    assert.strictEqual(agnes.calls.length, 1);
+    assert.deepStrictEqual(
+      agnes.calls[0].body.chat_template_kwargs,
+      { enable_thinking: false },
+      'Agnes Flash must receive its documented nested thinking switch'
+    );
+    assert.strictEqual(agnes.calls[0].body.enable_thinking, undefined);
+    process.env.AI_API_BASE = 'https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1';
+    process.env.AI_MODEL = 'qwen3.7-plus';
 
     const lengthStream = createUpstream([
       'data: {"choices":[{"delta":{"content":"第一部分尚未完成"},"finish_reason":null}]}\n\n',

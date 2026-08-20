@@ -59,15 +59,15 @@ npx vercel dev
 
 ```text
 AI_API_KEY=your_api_key
-AI_API_BASE=https://api.deepseek.com
-AI_MODEL=deepseek-chat
+AI_API_BASE=https://apihub.agnes-ai.com/v1
+AI_MODEL=agnes-2.0-flash
 AI_MAX_COMPLETION_TOKENS=2000
 AI_MAX_CONTINUATIONS=1
 CHAT_RATE_LIMIT_WINDOW_MS=60000
 CHAT_RATE_LIMIT_MAX=12
 ```
 
-其中 `AI_API_KEY` 为必填项，其余变量可按所使用的 OpenAI-compatible 模型服务调整。`AI_MAX_COMPLETION_TOKENS` 控制单次回答预算，`AI_MAX_CONTINUATIONS` 控制遇到长度截断或明显残缺结尾时的自动续写次数；二者不配置时分别默认为 `2000` 和 `1`。服务端会针对 Qwen 与 MiniMax-M3 使用各自的关闭思考参数，其他兼容服务不额外注入厂商私有参数。`.env` 已被 Git 忽略，请勿提交真实密钥。
+其中 `AI_API_KEY` 为必填项，其余变量可按所使用的 OpenAI-compatible 模型服务调整。`AI_MAX_COMPLETION_TOKENS` 控制单次回答预算，`AI_MAX_CONTINUATIONS` 控制遇到长度截断或明显残缺结尾时的自动续写次数；二者不配置时分别默认为 `2000` 和 `1`。服务端会为 Agnes 2.0/2.5 Flash 传入 `chat_template_kwargs: { enable_thinking: false }`，为 Qwen 与 MiniMax-M3 使用各自的关闭思考参数；其他兼容服务不额外注入厂商私有参数。`.env` 已被 Git 忽略，请勿提交真实密钥。
 
 ## 部署
 

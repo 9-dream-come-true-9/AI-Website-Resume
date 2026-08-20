@@ -422,7 +422,11 @@ module.exports.mergeContinuationAnswer = mergeContinuationAnswer;
 
 function getThinkingOptions(apiBase, model) {
   const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
-  if (/minimax[-\/]?m3/.test(String(model || '').toLowerCase())) {
+  const modelName = String(model || '').toLowerCase();
+  if (/^agnes-2\.(?:0|5)-flash$/.test(modelName)) {
+    return { chat_template_kwargs: { enable_thinking: false } };
+  }
+  if (/minimax[-\/]?m3/.test(modelName)) {
     return { thinking: { type: 'disabled' } };
   }
   if (/qwen|dashscope|aliyuncs/.test(provider)) {

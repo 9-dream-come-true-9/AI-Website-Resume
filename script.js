@@ -788,6 +788,7 @@
   const endpoint = '/api/chat';
   const portfolioLink = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
   const feishuLoginNote = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
+  const assistantGreeting = '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！';
   const storageKey = 'portfolio-text-agent-history-v9';
   const hiddenStorageKey = 'portfolio-text-agent-hidden-v1';
   const streamRenderIntervalMs = 60;
@@ -1109,7 +1110,9 @@
           includeInContext: !item || item.includeInContext !== false
         };
       }).filter(function (item) {
-        return item.text && !(item.role === 'bot' && isTemporaryAssistantError(item.text));
+        return item.text && !(item.role === 'bot' && (
+          isTemporaryAssistantError(item.text) || item.text === assistantGreeting
+        ));
       });
     } catch (error) {
       return [];
@@ -1157,7 +1160,7 @@
     if (!opts.thinking) {
       if (role === 'user') {
         wrap.appendChild(createUserMessageActions(wrap, messageState, bubble));
-      } else if (!isTemporaryAssistantError(messageState.text)) {
+      } else if (opts.copyable !== false && !isTemporaryAssistantError(messageState.text)) {
         wrap.appendChild(createAssistantMessageActions(messageState));
       }
     }
@@ -1676,8 +1679,8 @@
     if (!history.length) {
       appendMessage(
         'bot',
-        '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！',
-        { skipHistory: false }
+        assistantGreeting,
+        { skipHistory: true, copyable: false }
       );
       return;
     }

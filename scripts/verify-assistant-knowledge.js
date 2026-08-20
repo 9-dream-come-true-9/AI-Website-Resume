@@ -170,6 +170,7 @@ assert.strictEqual(
   'Portfolio guide preset must call the model instead of returning the fixed portfolio link'
 );
 assert(chatSource.includes('enable_thinking: false'));
+assert(chatSource.includes('chat_template_kwargs: { enable_thinking: false }'));
 assert(chatSource.includes('max_completion_tokens: maxCompletionTokens'));
 assert(chatSource.includes("const needsContinuation = streamResult.finishReason === 'length' || stoppedMidStructure"));
 assert(chatSource.includes('CONTINUATION_PROMPT'));
@@ -177,11 +178,21 @@ assert(chatSource.includes('INCOMPLETE_ENDING_PROMPT'));
 
 const expectedGreeting = '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！';
 assert(pageScript.includes(expectedGreeting), 'Assistant greeting was not updated from the new knowledge base');
+assert(pageScript.includes('item.text === assistantGreeting'), 'Previously stored greeting messages must be migrated out of history');
+assert(
+  pageScript.includes('{ skipHistory: true, copyable: false }'),
+  'Assistant greeting must not be stored in history or expose an answer copy button'
+);
+assert(
+  pageScript.includes("opts.copyable !== false && !isTemporaryAssistantError(messageState.text)"),
+  'Only explicitly non-copyable bot messages should omit answer actions'
+);
 assert(pageScript.includes("portfolio-text-agent-history-v9"), 'Assistant history version must expose the new greeting');
 assert(pageHtml.includes('assistant-knowledge-v3'), 'script.js cache-buster must include the greeting update');
 assert(pageHtml.includes('assistant-prompts-grid-2'), 'style.css cache-buster must include the prompt layout update');
 assert.strictEqual((pageHtml.match(/assistant-stream-integrity-1/g) || []).length, 3, 'Stream integrity cache token must cover both stylesheet links and script.js');
 assert.strictEqual((pageHtml.match(/assistant-answer-copy-1/g) || []).length, 3, 'Answer copy cache token must cover both stylesheet links and script.js');
+assert.strictEqual((pageHtml.match(/assistant-greeting-no-copy-1/g) || []).length, 3, 'Greeting copy cache token must cover both stylesheet links and script.js');
 assert(pageScript.includes('createAssistantMessageActions(messageState)'));
 assert(pageScript.includes('createCopyMessageButton(messageState, true)'));
 assert(pageScript.includes('let receivedDone = false'));
