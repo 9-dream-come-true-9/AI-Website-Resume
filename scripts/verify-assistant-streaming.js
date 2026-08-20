@@ -83,10 +83,10 @@ function createResponse() {
   };
 }
 
-function createRequest(message, ip) {
+function createRequest(message, ip, history) {
   return {
     method: 'POST',
-    body: { message, history: [] },
+    body: { message, history: history || [] },
     headers: {},
     socket: { remoteAddress: ip }
   };
@@ -111,16 +111,17 @@ function parseEvents(response) {
     });
 }
 
-function normalStream(first, second) {
+function normalStream(first, second, includeCompletionMarker) {
+  const marker = includeCompletionMarker === false ? '' : '【回答完毕】';
   return createUpstream([
     `data: ${JSON.stringify({ choices: [{ delta: { content: first }, finish_reason: null }] })}\n`,
     '\n',
-    `data: ${JSON.stringify({ choices: [{ delta: { content: second }, finish_reason: 'stop' }] })}\n\n`,
+    `data: ${JSON.stringify({ choices: [{ delta: { content: second + marker }, finish_reason: 'stop' }] })}\n\n`,
     'data: [DONE]\n\n'
   ]);
 }
 
-async function runHandler(message, ip, upstreams) {
+async function runHandler(message, ip, upstreams, history) {
   const calls = [];
   const response = createResponse();
   global.fetch = async function (url, options) {
@@ -128,7 +129,7 @@ async function runHandler(message, ip, upstreams) {
     assert(upstreams.length > 0, 'Handler made more upstream calls than expected');
     return upstreams.shift();
   };
-  await handler(createRequest(message, ip), response);
+  await handler(createRequest(message, ip, history), response);
   return { calls, response, events: parseEvents(response) };
 }
 
@@ -140,7 +141,11 @@ async function runHandler(message, ip, upstreams) {
     AI_MODEL: process.env.AI_MODEL,
     AI_MAX_COMPLETION_TOKENS: process.env.AI_MAX_COMPLETION_TOKENS,
     AI_MAX_CONTINUATIONS: process.env.AI_MAX_CONTINUATIONS,
-    CHAT_CLIENT_TOKEN: process.env.CHAT_CLIENT_TOKEN
+    CHAT_CLIENT_TOKEN: process.env.CHAT_CLIENT_TOKEN,
+    CHAT_PROTECTION_MODE: process.env.CHAT_PROTECTION_MODE,
+    VERCEL: process.env.VERCEL,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    NODE_ENV: process.env.NODE_ENV
   };
 
   process.env.AI_API_KEY = 'test-key-not-a-secret';
@@ -149,6 +154,10 @@ async function runHandler(message, ip, upstreams) {
   delete process.env.AI_MAX_COMPLETION_TOKENS;
   process.env.AI_MAX_CONTINUATIONS = '1';
   delete process.env.CHAT_CLIENT_TOKEN;
+  process.env.CHAT_PROTECTION_MODE = 'off';
+  delete process.env.VERCEL;
+  delete process.env.VERCEL_ENV;
+  delete process.env.NODE_ENV;
 
   try {
     const guidePrompt = '请按四大模块导览赵亚杰的 AI 作品集《AI 实验室》，概括代表作品并附对应入口链接';
@@ -185,13 +194,21 @@ async function runHandler(message, ip, upstreams) {
     const guide = await runHandler(
       guidePrompt,
       '127.0.0.101',
-      [normalStream('这是模型生成的', '作品集导览。')]
+      [normalStream('这是模型生成的', '作品集导览。')],
+      [{ role: 'user', text: '不能被发送的旧问题' }, { role: 'assistant', text: '不能被发送的旧回答' }]
     );
     assert.strictEqual(guide.calls.length, 1, 'Portfolio guide preset must call the model exactly once');
     assert.strictEqual(guide.response.headers['content-type'], 'text/event-stream; charset=utf-8');
     assert.strictEqual(guide.response.jsonBody, null, 'Portfolio guide preset must not use the fixed JSON answer');
     assert.strictEqual(guide.calls[0].body.enable_thinking, false, 'Portfolio Q&A should avoid unnecessary thinking latency');
-    assert.strictEqual(guide.calls[0].body.max_completion_tokens, 2000);
+    assert.strictEqual(guide.calls[0].body.max_completion_tokens, 1200);
+    assert.strictEqual(guide.calls[0].body.max_tokens, undefined);
+    assert.strictEqual(
+      handler.getCompletionTokenOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.0-flash', 3000).max_tokens,
+      3000
+    );
+    assert.strictEqual(guide.calls[0].body.messages.length, 2, 'Upstream request must contain only system knowledge and the current question');
+    assert(!JSON.stringify(guide.calls[0].body.messages).includes('不能被发送的旧问题'));
     assert.deepStrictEqual(guide.calls[0].body.stream_options, { include_usage: true });
     const guideDone = guide.events.find((event) => event.event === 'done');
     assert(guideDone, 'Normal model stream must emit a done event');
@@ -238,7 +255,7 @@ async function runHandler(message, ip, upstreams) {
     const semanticContinuation = await runHandler(
       '测试裸编号收尾',
       '127.0.0.104',
-      [normalStream('六、推荐关注点\n', '1.'), normalStream(' 招聘方可重点关注落地证据', '，回答完整收尾。')]
+      [normalStream('六、推荐关注点\n', '1.', false), normalStream(' 招聘方可重点关注落地证据', '，回答完整收尾。')]
     );
     assert.strictEqual(semanticContinuation.calls.length, 2, 'A bare numbered ending must trigger one automatic continuation');
     const semanticDone = semanticContinuation.events.find((event) => event.event === 'done');
@@ -257,7 +274,7 @@ async function runHandler(message, ip, upstreams) {
           'data: {"choices":[{"delta":{"content":"回答在这里中断"},"finish_reason":null}]}\n\n',
           'data: {"choices":[{"delta":{"content":""},"finish_reason":"length"}]}\n\n'
         ]),
-        normalStream('', '')
+        normalStream('', '', false)
       ]
     );
     const emptyDone = emptyContinuation.events.find((event) => event.event === 'done');

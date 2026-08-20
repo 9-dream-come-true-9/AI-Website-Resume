@@ -44,7 +44,7 @@ assert(dialog.includes('data-github-access-cancel'), 'GitHub dialog must provide
 assert(dialog.includes('data-github-access-confirm'), 'GitHub dialog must provide a continue action');
 assert(dialog.includes('target="_blank"'), 'The continue link must open GitHub in a new tab');
 assert(dialog.includes('rel="noopener noreferrer"'), 'The continue link must protect the opener context');
-assert(html.includes('GitHub 点击会先显示访问提示'), 'Contact guidance must describe the new GitHub prompt');
+assert(html.includes('GitHub点击会跳转链接'), 'Contact guidance must use the updated GitHub link copy');
 
 const initStart = script.indexOf('function initGithubAccessDialog()');
 const initEnd = script.indexOf('function initPageExperience()', initStart);

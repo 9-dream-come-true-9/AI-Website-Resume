@@ -171,8 +171,13 @@ assert.strictEqual(
 );
 assert(chatSource.includes('enable_thinking: false'));
 assert(chatSource.includes('chat_template_kwargs: { enable_thinking: false }'));
-assert(chatSource.includes('max_completion_tokens: maxCompletionTokens'));
-assert(chatSource.includes("const needsContinuation = streamResult.finishReason === 'length' || stoppedMidStructure"));
+assert(chatSource.includes('getCompletionTokenOptions(apiBase, model, maxCompletionTokens)'));
+assert(chatSource.includes('const maxCompletionTokenLimit = isHostedProduction() ? 1200 : 8000'));
+assert(chatSource.includes('不得透露底层模型名称、模型版本、模型供应商'));
+assert(chatSource.includes('【回答完毕】'));
+assert(!/const history\s*=|slice\(-8\)/.test(chatSource), 'Backend must not forward conversation history');
+assert(chatSource.includes("const needsContinuation = streamResult.finishReason === 'length'"));
+assert(chatSource.includes("|| !streamResult.sawCompletionMarker"));
 assert(chatSource.includes('CONTINUATION_PROMPT'));
 assert(chatSource.includes('INCOMPLETE_ENDING_PROMPT'));
 
@@ -193,7 +198,13 @@ assert(pageHtml.includes('assistant-prompts-grid-2'), 'style.css cache-buster mu
 assert.strictEqual((pageHtml.match(/assistant-stream-integrity-1/g) || []).length, 3, 'Stream integrity cache token must cover both stylesheet links and script.js');
 assert.strictEqual((pageHtml.match(/assistant-answer-copy-1/g) || []).length, 3, 'Answer copy cache token must cover both stylesheet links and script.js');
 assert.strictEqual((pageHtml.match(/assistant-greeting-no-copy-1/g) || []).length, 3, 'Greeting copy cache token must cover both stylesheet links and script.js');
+assert.strictEqual((pageHtml.match(/assistant-context-isolation-1/g) || []).length, 3, 'Context isolation cache token must cover both stylesheet links and script.js');
+assert.strictEqual((pageHtml.match(/answer-completion-marker-1/g) || []).length, 3, 'Completion marker cache token must cover both stylesheet links and script.js');
+assert(pageHtml.includes('AI产品全链路能力'), 'AI product full-link capability title must be updated');
+assert(pageHtml.includes('覆盖需求洞察、原型设计、数据分析与产品文档撰写'), 'AI product full-link capability description must reflect the portfolio');
 assert(pageScript.includes('createAssistantMessageActions(messageState)'));
+assert(!pageScript.includes('history: conversationHistory'), 'Frontend must not send conversation history');
+assert(!pageScript.includes('getContextHistory'), 'Frontend must not construct model context history');
 assert(pageScript.includes('createCopyMessageButton(messageState, true)'));
 assert(pageScript.includes('let receivedDone = false'));
 assert(pageScript.includes("new Error('Stream ended before the done event')"));

@@ -16,6 +16,8 @@
   --color-nav-chat: #c43d8f;
   --color-accent-soft: rgba(144, 100, 245, 0.08);
   --gradient-accent: #9064f5;
+  --color-button-purple: #9a75ef;
+  --color-button-purple-hover: #8b69e2;
 
   --font-display: 'Inter', 'Noto Sans SC', 'Nunito', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
   --font-body: 'Inter', 'Noto Sans SC', 'Nunito', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
@@ -43,6 +45,8 @@ html.dark {
   --color-nav-chat: #ff9bd1;
   --color-accent-soft: rgba(144, 100, 245, 0.16);
   --gradient-accent: #a987ff;
+  --color-button-purple: #b197f2;
+  --color-button-purple-hover: #a386e9;
 }
 
 *, *::before, *::after {
@@ -853,7 +857,7 @@ html.dark .resume-word-suboption {
   border: 1px solid rgba(255, 255, 255, 0.38);
   border-radius: 999px;
   color: #fff;
-  background: var(--color-accent);
+  background: var(--color-button-purple);
   box-shadow: 0 8px 18px -10px rgba(144, 100, 245, 0.72);
   font-size: 0.875rem;
   font-weight: 900;
@@ -868,7 +872,7 @@ html.dark .resume-word-suboption {
 
 .portfolio-note-confirm:hover {
   color: #fff;
-  background: #7d50ec;
+  background: var(--color-button-purple-hover);
   box-shadow: 0 10px 22px -10px rgba(144, 100, 245, 0.86);
 }
 
@@ -1641,7 +1645,7 @@ html.js-anim .hero-summary-step-6 {
   padding: 0.9rem 1.25rem;
   border: 1px solid rgba(144, 100, 245, 0.2);
   border-radius: 999px;
-  background: var(--gradient-accent);
+  background: var(--color-button-purple);
   box-shadow: 0 12px 24px -16px rgba(144, 100, 245, 0.8);
   color: #fff;
   font: inherit;
@@ -1802,6 +1806,8 @@ html.dark .hero-summary-assistant {
 }
 
 .capability-card {
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
   padding: 1.65rem;
   background-color: var(--color-bg-soft);
@@ -1841,6 +1847,154 @@ html.dark .hero-summary-assistant {
   font-size: 0.875rem;
   color: var(--color-ink-soft);
   line-height: 1.625;
+}
+
+.capability-card-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 1.15rem;
+}
+
+.capability-card-action {
+  width: min(100%, 15rem);
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.capability-dialogs {
+  display: contents;
+}
+
+.capability-detail-intro {
+  max-width: 42rem;
+  margin: 0 0 1.2rem;
+  color: var(--color-ink-soft);
+  font-size: 0.96rem;
+  line-height: 1.75;
+}
+
+.capability-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.capability-resource-link {
+  width: 100%;
+  min-height: 3.05rem;
+  white-space: normal;
+  text-align: center;
+}
+
+.capability-detail-dialog .experience-detail-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.capability-detail-dialog .experience-detail-header > div {
+  width: 100%;
+  padding-inline: 3.5rem;
+  text-align: center;
+}
+
+.capability-detail-dialog .experience-detail-header h2 {
+  max-width: none;
+  margin-inline: auto;
+}
+
+.capability-detail-dialog .experience-detail-header .experience-detail-close {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.5rem;
+}
+
+.experience-detail-dialog.video-quality-dialog {
+  width: min(42rem, calc(100vw - 2rem));
+}
+
+.video-quality-dialog .experience-detail-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-quality-dialog .experience-detail-header > div {
+  width: 100%;
+  padding-inline: 3.5rem;
+  text-align: center;
+}
+
+.video-quality-dialog .experience-detail-header h2 {
+  max-width: none;
+  margin-inline: auto;
+}
+
+.video-quality-dialog .experience-detail-header .experience-detail-close {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.5rem;
+}
+
+.video-quality-copy {
+  margin: 0 0 1rem;
+  color: var(--color-ink-soft);
+  font-size: 0.96rem;
+  line-height: 1.75;
+}
+
+.video-quality-image {
+  display: block;
+  width: 100%;
+  max-height: min(25rem, 48vh);
+  object-fit: contain;
+  border: 1px solid rgba(144, 100, 245, 0.16);
+  border-radius: 0.85rem;
+  background: #f5f6fa;
+}
+
+.video-quality-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 1.15rem;
+}
+
+.video-quality-actions .project-repo-link {
+  min-height: 2.8rem;
+}
+
+@media (max-width: 47.99rem) {
+  .experience-detail-dialog.video-quality-dialog {
+    width: 100%;
+  }
+
+  .capability-detail-dialog .experience-detail-header > div {
+    padding-inline: 3rem;
+  }
+
+  .capability-detail-dialog .experience-detail-header .experience-detail-close {
+    top: 1.15rem;
+    right: 1.05rem;
+  }
+
+  .video-quality-dialog .experience-detail-header > div {
+    padding-inline: 3rem;
+  }
+
+  .video-quality-dialog .experience-detail-header .experience-detail-close {
+    top: 1.15rem;
+    right: 1.05rem;
+  }
+
+  .capability-resource-grid,
+  .video-quality-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .project-card {
@@ -2072,7 +2226,7 @@ html.dark .project-flow-list li {
   padding: 0.65rem 0.9rem;
   border: 1px solid transparent;
   border-radius: 0.75rem;
-  background: var(--color-accent);
+  background: var(--color-button-purple);
   color: #fff;
   font-size: 0.76rem;
   font-weight: 900;
@@ -2101,7 +2255,7 @@ html.dark .project-flow-list li {
 @media (hover: hover) and (pointer: fine) {
   .project-repo-link:hover {
     transform: translateY(-2px);
-    background: #7f54e8;
+    background: var(--color-button-purple-hover);
     box-shadow: 0 17px 30px -18px rgba(82, 52, 156, 0.92);
   }
 }
@@ -2301,7 +2455,7 @@ html.dark .github-access-surface {
 
 .github-access-confirm {
   border: 1px solid transparent;
-  background: var(--gradient-accent);
+  background: var(--color-button-purple);
   color: #fff;
   text-decoration: none;
   box-shadow: 0 14px 26px -18px rgba(82, 52, 156, 0.88);
@@ -2479,7 +2633,7 @@ html.dark .github-access-surface {
   padding: 0.65rem 0.95rem;
   border: 1px solid transparent;
   border-radius: 0.75rem;
-  background: var(--color-accent);
+  background: var(--color-button-purple);
   color: #fff;
   font: inherit;
   font-size: 0.8125rem;
@@ -2514,7 +2668,7 @@ html.dark .github-access-surface {
 @media (hover: hover) and (pointer: fine) {
   .experience-entry-action:hover {
     transform: translateY(-2px);
-    background: #7f54e8;
+    background: var(--color-button-purple-hover);
     box-shadow: 0 16px 28px -18px rgba(82, 52, 156, 0.9);
   }
 }
@@ -4362,6 +4516,40 @@ html.dark .assistant-bubble.is-markdown a {
   padding: 0 1rem 0.875rem;
 }
 
+/* Turnstile runs only while a message is being sent. Keep its iframe out of
+   the visual layout while retaining a real render target for accessibility
+   and Cloudflare's interaction fallback. */
+.assistant-turnstile-host {
+  position: fixed;
+  left: -10000px;
+  top: -10000px;
+  width: 318px;
+  height: 83px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.assistant-turnstile-host.is-compact {
+  width: 168px;
+  height: 158px;
+}
+
+.assistant-turnstile-host.is-active {
+  left: auto;
+  top: auto;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 1100;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-bg-elev);
+  box-shadow: 0 12px 32px rgba(17, 19, 29, 0.2);
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .assistant-chip {
   min-width: 0;
   width: 100%;
@@ -4432,7 +4620,7 @@ html.dark .assistant-bubble.is-markdown a {
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: var(--gradient-accent);
+  background: var(--color-button-purple);
   cursor: pointer;
   transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1), filter 150ms ease;
 }

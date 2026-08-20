@@ -7,6 +7,7 @@ These SVGs are vendored locally so the toolchain never depends on a runtime CDN 
 - `axure.svg`: Axure's three-colour X mark, cropped from Iconify's `thesvg-color:axure` asset so it fits the square badge
 - `figma.svg`: Figma mark from Iconify's `logos:figma`
 - `gemini.svg`: Gemini mark from Iconify's `thesvg-color:gemini`
+- `deepseek-harness.svg`: local DSH monogram used for the DeepSeek Harness toolchain item
 - `qoderwork.svg`: Qoder mark used for QoderWork from LobeHub's static SVG set
 - `workbuddy.svg`: WorkBuddy mark from Iconify's `thesvg-color:workbuddy`
 - `obsidian.svg`: Obsidian mark from Iconify's `logos:obsidian-icon`
