@@ -21,8 +21,8 @@ vercel.json
 
 ```text
 AI_API_KEY=你的模型服务 API Key
-AI_API_BASE=https://api.deepseek.com
-AI_MODEL=deepseek-v4-flash
+AI_API_BASE=https://token-plan-cn.xiaomimimo.com/v1
+AI_MODEL=mimo-v2.5
 AI_MAX_COMPLETION_TOKENS=8000
 AI_MAX_CONTINUATIONS=0
 

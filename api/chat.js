@@ -118,8 +118,8 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const apiBase = String(process.env.AI_API_BASE || 'https://api.deepseek.com').replace(/\/+$/, '');
-  const model = process.env.AI_MODEL || 'deepseek-v4-flash';
+  const apiBase = String(process.env.AI_API_BASE || 'https://token-plan-cn.xiaomimimo.com/v1').replace(/\/+$/, '');
+  const model = process.env.AI_MODEL || 'mimo-v2.5';
   const configuredCompletionTokens = readBoundedInteger(
     process.env.AI_MAX_COMPLETION_TOKENS,
     DEFAULT_MAX_COMPLETION_TOKENS,
@@ -519,6 +519,9 @@ function getThinkingOptions(apiBase, model) {
   const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
   const modelName = String(model || '').toLowerCase();
   if (/^deepseek-v4-flash$/.test(modelName)) {
+    return { thinking: { type: 'disabled' } };
+  }
+  if (/^mimo-v2\.5(?:-pro)?$/.test(modelName)) {
     return { thinking: { type: 'disabled' } };
   }
   if (/^agnes-2\.(?:0|5)-flash$/.test(modelName)) {
