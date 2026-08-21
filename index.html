@@ -130,9 +130,9 @@
       transform: translate3d(-92%, 0, 0);
       backface-visibility: hidden;
       will-change: transform;
-      /* preloader.js starts the single five-second clock after parsing; do not
-         animate during HTML parsing or the bar will visibly restart. */
-      animation: none;
+      /* Start immediately during the first paint; preloader.js reuses this
+         animation instead of resetting it after parsing. */
+      animation: sitePreloaderProgress 5s linear forwards;
     }
 
     .site-preloader.is-ready .site-preloader__progress-fill {
@@ -236,7 +236,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css?v=assistant-callout-guard-2-resume-word-collapse-1-experience-dialog-1-timeline-details-1-project-card-compact-1-hero-cta-baseline-1-project-bg-opaque-1-education-line-1-project-functional-copy-1-project-title-card-center-1-assistant-callout-pass-through-1-assistant-root-pass-through-1-project-disclaimer-center-1-education-grid-2-project-title-action-row-3-project-desc-reflow-1-project-details-center-1-hero-directions-ink-1-hero-assistant-copy-accent-1-hero-equal-nav-split-1-capabilities-timeline-width-1-hero-portfolio-note-contained-1-hero-roomy-layout-1-site-scale-1-assistant-glyph-avoidance-1-toolchain-hero-span-1-hero-assistant-cta-gap-1-github-access-dialog-1-education-major-alignment-1-assistant-scroll-stability-1-assistant-mobile-safe-rail-1-hero-summary-mobile-fill-1-assistant-prompts-grid-2-assistant-stream-integrity-1-assistant-markdown-rendering-1-assistant-answer-copy-1-assistant-greeting-no-copy-1-assistant-context-isolation-1-answer-completion-marker-1-capability-dialogs-1-video-quality-reminder-1-capability-dialog-title-center-1-button-purple-soft-1-video-quality-title-center-1" />
   </noscript>
-  <script src="preloader.js?v=preloader-5s-2" defer></script>
+  <script>document.documentElement.dataset.preloaderStartedAt = String(performance.now());</script>
+  <script src="preloader.js?v=preloader-5s-3" defer></script>
 </head>
 <body>
   <div id="site-preloader" class="site-preloader" role="status" aria-live="polite" aria-label="网站正在加载">

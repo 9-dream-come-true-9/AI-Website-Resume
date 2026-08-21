@@ -51,7 +51,8 @@
   const fixedDuration = 5000;
   const blessingInterval = 1600;
   const revealDuration = reduceMotion ? 0 : 420;
-  const startTime = performance.now();
+  const recordedStartTime = Number(root.dataset.preloaderStartedAt);
+  const startTime = Number.isFinite(recordedStartTime) ? recordedStartTime : performance.now();
   const progress = loader.querySelector('[role="progressbar"]');
   const progressFill = loader.querySelector('[data-preloader-progress]');
   const message = loader.querySelector('[data-preloader-message]');
@@ -149,15 +150,6 @@
 
   applyDeferredStylesheet(styleLink);
   applyDeferredStylesheet(fontLink);
-
-  if (progressFill && !reduceMotion) {
-    // CSS starts animations while the HTML is parsing. Restart it here so the
-    // visual five-second bar uses the same clock as the release timer.
-    progressFill.style.animation = 'none';
-    progressFill.style.transform = 'translate3d(-92%, 0, 0)';
-    void progressFill.offsetWidth;
-    progressFill.style.animation = 'sitePreloaderProgress ' + fixedDuration + 'ms linear forwards';
-  }
 
   blessingTimer = window.setInterval(function () {
     showBlessing((blessingIndex + 1) % blessings.length);
