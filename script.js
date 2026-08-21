@@ -1,6 +1,42 @@
 (function () {
   'use strict';
 
+  // Independent recovery path for a failed, blocked, or late preloader.js.
+  // This runs from the main document script and prevents a loading overlay from
+  // becoming a permanent interaction lock.
+  function releaseStalledPreloader() {
+    const root = document.documentElement;
+    const loader = document.getElementById('site-preloader');
+    if (!root.classList.contains('preloading') && (!loader || loader.hidden)) return;
+
+    window.__sitePreloaderEmergencyRelease = true;
+    root.classList.remove('preloading');
+    root.classList.add('site-ready');
+
+    if (loader) {
+      loader.classList.add('is-ready');
+      loader.hidden = true;
+    }
+
+    if (document.body) {
+      document.body.removeAttribute('aria-busy');
+      Array.from(document.body.children).forEach(function (element) {
+        if (element === loader || element.tagName === 'SCRIPT') return;
+        element.removeAttribute('inert');
+        if (element.dataset.preloaderAriaHidden === 'true') {
+          element.removeAttribute('aria-hidden');
+          delete element.dataset.preloaderAriaHidden;
+        }
+      });
+    }
+
+    document.dispatchEvent(new CustomEvent('site:ready', {
+      detail: { forced: true, reason: 'preloader-timeout' }
+    }));
+  }
+
+  window.__sitePreloaderFallbackTimer = window.setTimeout(releaseStalledPreloader, 2200);
+
   function whenSiteReady(callback) {
     if (
       document.documentElement.classList.contains('site-ready') ||
@@ -831,6 +867,39 @@
     }
   }
 
+  // Browser privacy modes, enterprise policies, and full storage quotas can
+  // expose a Storage object whose individual methods still throw. Persistence
+  // is helpful, but it must never be allowed to interrupt the chat flow.
+  function readStorage(store, key, fallback) {
+    if (!store) return fallback;
+    try {
+      const value = store.getItem(key);
+      return value === null ? fallback : value;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  function writeStorage(store, key, value) {
+    if (!store) return false;
+    try {
+      store.setItem(key, value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function removeStorage(store, key) {
+    if (!store) return false;
+    try {
+      store.removeItem(key);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   const root = document.querySelector('[data-assistant]');
   if (!root) return;
 
@@ -1174,7 +1243,7 @@
 
   function loadHistory() {
     try {
-      const parsed = JSON.parse((sessionStore && sessionStore.getItem(storageKey)) || '[]');
+      const parsed = JSON.parse(readStorage(sessionStore, storageKey, '[]'));
       if (!Array.isArray(parsed)) return [];
       return parsed.slice(-18).map(function (item) {
         const role = item && item.role === 'user' ? 'user' : 'bot';
@@ -1198,7 +1267,9 @@
     const compact = history.filter(function (item) {
       return item && item.role && item.text;
     }).slice(-18);
-    if (sessionStore) sessionStore.setItem(storageKey, JSON.stringify(compact));
+    // A blocked/full storage area must not prevent the just-rendered message
+    // or the following AI request from continuing.
+    writeStorage(sessionStore, storageKey, JSON.stringify(compact));
   }
 
   function appendMessage(role, text, options) {
@@ -1843,9 +1914,7 @@
     if (isHidden) setOpen(false);
     root.classList.toggle('is-hidden', isHidden);
     if (recallBtn) recallBtn.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
-    if (opts.persist !== false && localStore) {
-      localStore.setItem(hiddenStorageKey, isHidden ? 'true' : 'false');
-    }
+    if (opts.persist !== false) writeStorage(localStore, hiddenStorageKey, isHidden ? 'true' : 'false');
     scheduleSummaryCopyAvoidance();
   }
 
@@ -2196,7 +2265,7 @@
   clearBtn.addEventListener('click', function () {
     if (isResponding) return;
     history = [];
-    if (sessionStore) sessionStore.removeItem(storageKey);
+    removeStorage(sessionStore, storageKey);
     renderHistory();
   });
 
@@ -2232,7 +2301,7 @@
 
   setResponding(false);
   setOpen(false);
-  setHidden(localStore ? localStore.getItem(hiddenStorageKey) === 'true' : false, { persist: false });
+  setHidden(readStorage(localStore, hiddenStorageKey, 'false') === 'true', { persist: false });
   renderHistory();
   scheduleSummaryCopyAvoidance();
 })();
