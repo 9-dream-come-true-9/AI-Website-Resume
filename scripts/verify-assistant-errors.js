@@ -13,7 +13,7 @@ assert(
   'Assistant input must prevent messages longer than the server limit'
 );
 assert.strictEqual(
-  (html.match(/assistant-request-error-2/g) || []).length,
+  (html.match(/assistant-request-error-3/g) || []).length,
   1,
   'Request-error fix must invalidate the deployed assistant script cache'
 );
@@ -25,6 +25,7 @@ assert.strictEqual(
 assert(script.includes('const maxQuestionLength = 800;'), 'Frontend and API message limits must stay aligned');
 assert(script.includes("typeof errorPayload.message === 'string'"), 'Frontend must preserve the server user-facing error message');
 assert(script.includes('const partialFailureNotice = hasServiceFailure'), 'Partial streamed failures must remain visibly marked as failures');
+assert(script.includes("if (status === 408 || status === 504) return '';"), 'Timeouts must not become visible assistant copy');
 assert(script.includes('eventName === \'status\''), 'Frontend must consume the initial SSE thinking-status event');
 assert(script.includes('function applyStreamStatus(status)'), 'Frontend must render the initial SSE thinking status');
 assert(script.includes('const thinkingStatusIntervalMs = 1400;'), 'Frontend must cycle thinking statuses locally while waiting for the first token');
@@ -39,7 +40,7 @@ assert(api.getUpstreamFailurePayload, 'API must expose a structured upstream fai
 assert.deepStrictEqual(api.getUpstreamFailurePayload(true), {
   error: 'AI request timed out',
   code: 'AI_REQUEST_TIMEOUT',
-  message: 'AI 服务响应超时，请稍后再试。'
+  message: ''
 });
 assert.deepStrictEqual(api.getUpstreamFailurePayload(false), {
   error: 'AI service unavailable',
@@ -65,9 +66,9 @@ assert.strictEqual(getMessage({ status: 400 }), '请输入问题后再发送。'
 assert.strictEqual(getMessage({ status: 429 }), '当前访问较多或额度已达到上限，请稍后再试。');
 assert.strictEqual(
   getMessage({ status: 504, userMessage: 'AI 服务响应超时，请稍后再试。' }),
-  'AI 服务响应超时，请稍后再试。'
+  ''
 );
-assert.strictEqual(getMessage({ status: 504 }), 'AI 服务响应超时，请稍后再试。');
+assert.strictEqual(getMessage({ status: 504 }), '');
 assert.strictEqual(getMessage({ status: 502 }), 'AI 服务暂时不可用，请稍后再试。');
 
 console.log('Assistant request-limit and service-error mapping checks passed.');

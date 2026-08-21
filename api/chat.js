@@ -574,7 +574,7 @@ function getUpstreamFailurePayload(timedOut) {
     ? {
       error: 'AI request timed out',
       code: 'AI_REQUEST_TIMEOUT',
-      message: 'AI 服务响应超时，请稍后再试。'
+      message: ''
     }
     : {
       error: 'AI service unavailable',

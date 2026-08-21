@@ -1965,11 +1965,11 @@
 
   function getAssistantRequestErrorMessage(error) {
     const status = Number(error && error.status);
+    if (status === 408 || status === 504) return '';
     if (error && error.userMessage) return error.userMessage;
     if (status === 429) return '当前访问较多或额度已达到上限，请稍后再试。';
     if (status === 400) return (error && error.userMessage) || '请输入问题后再发送。';
     if (status === 413) return (error && error.userMessage) || ('问题请控制在 ' + maxQuestionLength + ' 个字符以内。');
-    if (status === 408 || status === 504) return 'AI 服务响应超时，请稍后再试。';
     return 'AI 服务暂时不可用，请稍后再试。';
   }
 
@@ -2215,8 +2215,9 @@
             errorStatus === 504
           )
         );
-        const partialFailureNotice = hasServiceFailure
-          ? '\n\n> ' + getAssistantRequestErrorMessage(error)
+        const requestErrorMessage = getAssistantRequestErrorMessage(error);
+        const partialFailureNotice = hasServiceFailure && requestErrorMessage
+          ? '\n\n> ' + requestErrorMessage
           : '';
         const shouldFollowStream = shouldFollowAssistantStream();
         thinking.remove();
@@ -2227,11 +2228,14 @@
         excludeHistoryItemFromContext(currentUserHistoryItem);
       } else if (!isAbortError(error, requestController.signal)) {
         const shouldFollowStream = shouldFollowAssistantStream();
+        const requestErrorMessage = getAssistantRequestErrorMessage(error);
         thinking.remove();
-        appendMessage('bot', getAssistantRequestErrorMessage(error), {
-          skipHistory: true,
-          autoScroll: shouldFollowStream
-        });
+        if (requestErrorMessage) {
+          appendMessage('bot', requestErrorMessage, {
+            skipHistory: true,
+            autoScroll: shouldFollowStream
+          });
+        }
         excludeHistoryItemFromContext(currentUserHistoryItem);
       } else {
         thinking.remove();
