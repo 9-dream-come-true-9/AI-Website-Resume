@@ -1889,7 +1889,7 @@
     return 'AI 服务暂时不可用，请稍后再试。';
   }
 
-  async function callModel(question, onStreamUpdate, signal) {
+  async function callModel(question, onStreamUpdate, signal, onStreamStatus) {
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -1913,7 +1913,7 @@
       }
       const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('text/event-stream') && response.body) {
-        return await readModelStream(response, onStreamUpdate);
+        return await readModelStream(response, onStreamUpdate, onStreamStatus);
       }
       const payload = contentType.includes('application/json') ? await response.json() : await response.text();
       const answer = stripModelThinking(parseModelResponse(payload)).trim();
@@ -1924,7 +1924,7 @@
     }
   }
 
-  async function readModelStream(response, onStreamUpdate) {
+  async function readModelStream(response, onStreamUpdate, onStreamStatus) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -1942,6 +1942,10 @@
       if (!dataText) return;
 
       const data = JSON.parse(dataText);
+      if (eventName === 'status') {
+        if (typeof onStreamStatus === 'function') onStreamStatus(data);
+        return;
+      }
       if (eventName === 'error') {
         const streamError = new Error(data.error || 'Stream failed');
         streamError.status = Number(data.status) || (data.code === 'AI_REQUEST_TIMEOUT' ? 504 : 0);
@@ -2062,11 +2066,19 @@
       streamRenderTimer = 0;
     }
 
+    function applyStreamStatus(status) {
+      if (isStreaming || requestController.signal.aborted || !status) return;
+      const message = typeof status.message === 'string' ? status.message.trim() : '';
+      if (!message) return;
+      const statusBubble = thinking.querySelector('.assistant-bubble');
+      if (statusBubble) statusBubble.textContent = message;
+    }
+
     try {
       const answer = await callModel(question, function (partialAnswer) {
         if (!partialAnswer || requestController.signal.aborted) return;
         scheduleStreamRender(partialAnswer);
-      }, requestController.signal);
+      }, requestController.signal, applyStreamStatus);
 
       cancelPendingStreamRender();
       const shouldFollowStream = shouldFollowAssistantStream();

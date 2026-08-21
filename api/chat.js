@@ -5,6 +5,7 @@ const rateBuckets = new Map();
 const PORTFOLIO_LINK = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
 const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
 const MAX_USER_MESSAGE_LENGTH = 800;
+const LONG_MESSAGE_STATUS_THRESHOLD = 240;
 const DEFAULT_MAX_COMPLETION_TOKENS = 1200;
 const DEFAULT_MAX_CONTINUATIONS = 0;
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 45000;
@@ -208,6 +209,12 @@ module.exports = async function handler(req, res) {
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('X-Accel-Buffering', 'no');
         if (typeof res.flushHeaders === 'function') res.flushHeaders();
+        writeStreamEvent(res, 'status', {
+          phase: 'thinking',
+          message: userMessage.length >= LONG_MESSAGE_STATUS_THRESHOLD
+            ? '正在分析长问题…'
+            : '正在整理回答…'
+        });
       }
 
       try {
@@ -473,6 +480,7 @@ module.exports.getCompletionTokenOptions = getCompletionTokenOptions;
 module.exports.isLikelyIncompleteAnswer = isLikelyIncompleteAnswer;
 module.exports.mergeContinuationAnswer = mergeContinuationAnswer;
 module.exports.MAX_USER_MESSAGE_LENGTH = MAX_USER_MESSAGE_LENGTH;
+module.exports.LONG_MESSAGE_STATUS_THRESHOLD = LONG_MESSAGE_STATUS_THRESHOLD;
 module.exports.getUpstreamFailurePayload = getUpstreamFailurePayload;
 module.exports.DEFAULT_UPSTREAM_TIMEOUT_MS = DEFAULT_UPSTREAM_TIMEOUT_MS;
 

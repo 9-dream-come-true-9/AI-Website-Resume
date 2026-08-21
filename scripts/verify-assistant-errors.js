@@ -17,9 +17,16 @@ assert.strictEqual(
   1,
   'Request-error fix must invalidate the deployed assistant script cache'
 );
+assert.strictEqual(
+  (html.match(/assistant-sse-thinking-status-1/g) || []).length,
+  1,
+  'SSE thinking-status fix must invalidate the deployed assistant script cache'
+);
 assert(script.includes('const maxQuestionLength = 800;'), 'Frontend and API message limits must stay aligned');
 assert(script.includes("typeof errorPayload.message === 'string'"), 'Frontend must preserve the server user-facing error message');
 assert(script.includes('const partialFailureNotice = hasServiceFailure'), 'Partial streamed failures must remain visibly marked as failures');
+assert(script.includes('eventName === \'status\''), 'Frontend must consume the initial SSE thinking-status event');
+assert(script.includes('function applyStreamStatus(status)'), 'Frontend must render the initial SSE thinking status');
 assert(script.includes("status === 413"), 'Frontend must distinguish oversized messages from service outages');
 assert(script.includes("status === 504"), 'Frontend must distinguish upstream timeouts from generic failures');
 assert(script.includes("问题请控制在 ' + maxQuestionLength + ' 个字符以内。"), 'Client-side oversized-message guard is missing');

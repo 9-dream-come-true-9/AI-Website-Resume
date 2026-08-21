@@ -189,6 +189,7 @@ async function runHandler(message, ip, upstreams, history) {
     assert.strictEqual(handler.isLikelyIncompleteAnswer('六、推荐关注点\n1.'), true);
     assert.strictEqual(handler.isLikelyIncompleteAnswer('回答完整收尾。'), false);
     assert.strictEqual(handler.MAX_USER_MESSAGE_LENGTH, 800);
+    assert.strictEqual(handler.LONG_MESSAGE_STATUS_THRESHOLD, 240);
     const tooLong = await runHandler(
       'a'.repeat(handler.MAX_USER_MESSAGE_LENGTH + 1),
       '127.0.0.111',
@@ -223,8 +224,22 @@ async function runHandler(message, ip, upstreams, history) {
     assert.deepStrictEqual(guide.calls[0].body.stream_options, { include_usage: true });
     const guideDone = guide.events.find((event) => event.event === 'done');
     assert(guideDone, 'Normal model stream must emit a done event');
+    assert.deepStrictEqual(guide.events[0], {
+      event: 'status',
+      data: { phase: 'thinking', message: '正在整理回答…' }
+    }, 'SSE must announce the thinking state before the first answer delta');
     assert.strictEqual(guideDone.data.complete, true);
     assert.strictEqual(guideDone.data.answer, '这是模型生成的作品集导览。');
+
+    const longStatus = await runHandler(
+      '请完整介绍赵亚杰的 AI 产品能力，并覆盖作品、经历、FDE 交付和量化结果。'.padEnd(handler.LONG_MESSAGE_STATUS_THRESHOLD, '补充'),
+      '127.0.0.110',
+      [normalStream('长问题已开始分析。', '回答完整收尾。')]
+    );
+    assert.deepStrictEqual(longStatus.events[0], {
+      event: 'status',
+      data: { phase: 'thinking', message: '正在分析长问题…' }
+    }, 'Long questions must announce the analysis state over SSE');
 
     process.env.AI_API_BASE = 'https://apihub.agnes-ai.com/v1';
     process.env.AI_MODEL = 'agnes-2.0-flash';
