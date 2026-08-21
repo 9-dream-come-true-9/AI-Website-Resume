@@ -937,6 +937,8 @@
   const storageKey = 'portfolio-text-agent-history-v9';
   const hiddenStorageKey = 'portfolio-text-agent-hidden-v1';
   const streamRenderIntervalMs = 60;
+  const assistantNoContentTimeoutMs = 8000;
+  const assistantNoContentTimeoutMessage = '模型请求超时，还请您点击消息气泡的复制按钮重新发送一次~';
   const thinkingStatusIntervalMs = 1400;
   const longThinkingStatusThreshold = 240;
   const shortThinkingStatusMessages = [
@@ -2119,14 +2121,23 @@
 
     const bubble = thinking.querySelector('.assistant-bubble');
     let isStreaming = false;
+    let hasReceivedStreamContent = false;
     let streamedAnswer = '';
     let pendingStreamAnswer = '';
     let streamRenderTimer = 0;
+    let noContentTimer = 0;
+    let timedOutBeforeContent = false;
 
     function stopLocalThinkingStatusLoop() {
       if (!thinkingStatusTimer) return;
       window.clearInterval(thinkingStatusTimer);
       thinkingStatusTimer = 0;
+    }
+
+    function stopNoContentTimer() {
+      if (!noContentTimer) return;
+      window.clearTimeout(noContentTimer);
+      noContentTimer = 0;
     }
 
     function advanceLocalThinkingStatus() {
@@ -2179,10 +2190,17 @@
     }
 
     thinkingStatusTimer = window.setInterval(advanceLocalThinkingStatus, thinkingStatusIntervalMs);
+    noContentTimer = window.setTimeout(function () {
+      if (hasReceivedStreamContent || requestController.signal.aborted) return;
+      timedOutBeforeContent = true;
+      requestController.abort();
+    }, assistantNoContentTimeoutMs);
 
     try {
       const answer = await callModel(question, function (partialAnswer) {
         if (!partialAnswer || requestController.signal.aborted) return;
+        hasReceivedStreamContent = true;
+        stopNoContentTimer();
         stopLocalThinkingStatusLoop();
         scheduleStreamRender(partialAnswer);
       }, requestController.signal, applyStreamStatus);
@@ -2197,7 +2215,15 @@
       if (isTemporaryAssistantError(answer)) excludeHistoryItemFromContext(currentUserHistoryItem);
     } catch (error) {
       cancelPendingStreamRender();
-      if (requestController.signal.aborted && (streamedAnswer || pendingStreamAnswer)) {
+      if (timedOutBeforeContent) {
+        const shouldFollowStream = shouldFollowAssistantStream();
+        thinking.remove();
+        appendMessage('bot', assistantNoContentTimeoutMessage, {
+          skipHistory: true,
+          autoScroll: shouldFollowStream
+        });
+        excludeHistoryItemFromContext(currentUserHistoryItem);
+      } else if (requestController.signal.aborted && (streamedAnswer || pendingStreamAnswer)) {
         const stoppedAnswer = stripModelThinking(pendingStreamAnswer || streamedAnswer).trim();
         const shouldFollowStream = shouldFollowAssistantStream();
         thinking.remove();
@@ -2243,6 +2269,7 @@
       }
     } finally {
       stopLocalThinkingStatusLoop();
+      stopNoContentTimer();
       if (activeRequestController === requestController) {
         activeRequestController = null;
         setResponding(false);

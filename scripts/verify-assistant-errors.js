@@ -31,6 +31,11 @@ assert(script.includes('function applyStreamStatus(status)'), 'Frontend must ren
 assert(script.includes('const thinkingStatusIntervalMs = 1400;'), 'Frontend must cycle thinking statuses locally while waiting for the first token');
 assert(script.includes('function advanceLocalThinkingStatus()'), 'Frontend thinking-status cycle is missing');
 assert(script.includes('stopLocalThinkingStatusLoop();'), 'Frontend thinking-status cycle must stop after the first answer delta');
+assert(script.includes('const assistantNoContentTimeoutMs = 8000;'), 'Assistant must use an 8-second no-content timeout');
+assert(script.includes('const assistantNoContentTimeoutMessage = \'模型请求超时，还请您点击消息气泡的复制按钮重新发送一次~\';'), 'Assistant timeout copy is missing');
+assert(script.includes('timedOutBeforeContent'), 'Assistant must distinguish timeout before the first answer content');
+assert(script.includes('requestController.abort();'), 'Assistant no-content timeout must abort the active request');
+assert(script.includes("appendMessage('bot', assistantNoContentTimeoutMessage"), 'Assistant timeout must render a copyable fixed message');
 assert(script.includes("status === 413"), 'Frontend must distinguish oversized messages from service outages');
 assert(script.includes("status === 504"), 'Frontend must distinguish upstream timeouts from generic failures');
 assert(script.includes("问题请控制在 ' + maxQuestionLength + ' 个字符以内。"), 'Client-side oversized-message guard is missing');
