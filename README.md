@@ -62,13 +62,13 @@ AI_API_KEY=your_api_key
 AI_API_BASE=https://api.deepseek.com
 AI_MODEL=deepseek-v4-flash
 AI_MAX_COMPLETION_TOKENS=8000
-AI_MAX_CONTINUATIONS=4
+AI_MAX_CONTINUATIONS=0
 CHAT_RATE_LIMIT_WINDOW_MS=60000
 CHAT_RATE_LIMIT_MAX=12
 CHAT_UPSTREAM_TIMEOUT_MS=45000
 ```
 
-其中 `AI_API_KEY` 为必填项，其余变量可按所使用的 OpenAI-compatible 模型服务调整。当前示例使用 DeepSeek 的 `deepseek-v4-flash` 模型；`AI_MAX_COMPLETION_TOKENS` 控制单次回答预算，`AI_MAX_CONTINUATIONS` 控制遇到长度截断或明显残缺结尾时的自动续写次数；生产环境会至少使用 8000 个 completion tokens 和 4 次自动续写，避免回答被站点自身的短上限截断。接口仍保留单实例内存限流，默认每个实例每分钟 12 次；这不是跨 Vercel 实例的硬额度，模型供应商侧仍应设置独立 Key、日预算和余额告警。`.env` 已被 Git 忽略，请勿提交真实密钥。
+其中 `AI_API_KEY` 为必填项，其余变量可按所使用的 OpenAI-compatible 模型服务调整。当前示例使用 DeepSeek 的 `deepseek-v4-flash` 模型；自动续写已关闭，`AI_MAX_CONTINUATIONS` 保留为兼容配置但固定按 0 次处理。`AI_MAX_COMPLETION_TOKENS` 只控制单次回答预算；生产环境会至少使用 8000 个 completion tokens。接口仍保留单实例内存限流，默认每个实例每分钟 12 次；这不是跨 Vercel 实例的硬额度，模型供应商侧仍应设置独立 Key、日预算和余额告警。`.env` 已被 Git 忽略，请勿提交真实密钥。
 
 ## 部署
 

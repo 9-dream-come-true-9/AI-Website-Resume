@@ -290,42 +290,34 @@ async function runHandler(message, ip, upstreams, history) {
     const continuation = await runHandler(
       '请完整介绍 FDE 与 Skill',
       '127.0.0.102',
-      [lengthStream, normalStream('，自动续写后', '完整收尾。')]
+      [lengthStream]
     );
-    assert.strictEqual(continuation.calls.length, 2, 'Length-limited output must trigger one automatic continuation');
-    assert(
-      continuation.calls[1].body.messages.at(-1).content.includes('输出长度上限中断'),
-      'Continuation request must explicitly resume the interrupted answer'
-    );
+    assert.strictEqual(continuation.calls.length, 1, 'Length-limited output must not trigger an automatic continuation');
     const continuationDone = continuation.events.find((event) => event.event === 'done');
-    assert(continuationDone, 'Completed continuation must emit a done event');
-    assert.strictEqual(continuationDone.data.complete, true);
-    assert.strictEqual(continuationDone.data.answer, '第一部分尚未完成，自动续写后完整收尾。');
+    assert(continuationDone, 'Length-limited output must emit a done event');
+    assert.strictEqual(continuationDone.data.answer, '第一部分尚未完成');
 
     const semanticContinuation = await runHandler(
       '测试裸编号收尾',
       '127.0.0.104',
       [normalStream('六、推荐关注点\n', '1.', false), normalStream(' 招聘方可重点关注落地证据', '，回答完整收尾。')]
     );
-    assert.strictEqual(semanticContinuation.calls.length, 2, 'A bare numbered ending must trigger one automatic continuation');
+    assert.strictEqual(semanticContinuation.calls.length, 1, 'A bare numbered ending must not trigger an automatic continuation');
     const semanticDone = semanticContinuation.events.find((event) => event.event === 'done');
     assert(semanticDone);
-    assert.strictEqual(semanticDone.data.complete, true);
+    assert.strictEqual(semanticDone.data.complete, false);
     assert.strictEqual(
       semanticDone.data.answer,
-      '六、推荐关注点\n1. 招聘方可重点关注落地证据，回答完整收尾。'
+      '六、推荐关注点\n1.'
     );
 
     const emptyContinuation = await runHandler(
       '测试空续写',
       '127.0.0.105',
-      [
-        createUpstream([
-          'data: {"choices":[{"delta":{"content":"回答在这里中断"},"finish_reason":null}]}\n\n',
-          'data: {"choices":[{"delta":{"content":""},"finish_reason":"length"}]}\n\n'
-        ]),
-        normalStream('', '', false)
-      ]
+      [createUpstream([
+        'data: {"choices":[{"delta":{"content":"回答在这里中断"},"finish_reason":null}]}\n\n',
+        'data: {"choices":[{"delta":{"content":""},"finish_reason":"length"}]}\n\n'
+      ])]
     );
     const emptyDone = emptyContinuation.events.find((event) => event.event === 'done');
     assert(emptyDone, 'An empty continuation must still terminate transparently');

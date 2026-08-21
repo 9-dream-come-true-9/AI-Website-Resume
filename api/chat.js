@@ -22,8 +22,6 @@ const DEFAULT_MAX_COMPLETION_TOKENS = 1200;
 const DEFAULT_MAX_CONTINUATIONS = 0;
 const PRODUCTION_MIN_COMPLETION_TOKENS = 8000;
 const PRODUCTION_MAX_COMPLETION_TOKENS = 16000;
-const PRODUCTION_MIN_CONTINUATIONS = 4;
-const PRODUCTION_MAX_CONTINUATIONS = 6;
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 45000;
 const COMPLETION_MARKER = '【回答完毕】';
 const CONTINUATION_PROMPT = '上一个回答因输出长度上限中断。请直接从中断处继续，只补全尚未完成的内容，不重复开场、已输出的段落或标题，并确保回答完整收尾。';
@@ -128,21 +126,12 @@ module.exports = async function handler(req, res) {
     1200,
     PRODUCTION_MAX_COMPLETION_TOKENS
   );
-  const configuredContinuations = readBoundedInteger(
-    process.env.AI_MAX_CONTINUATIONS,
-    DEFAULT_MAX_CONTINUATIONS,
-    0,
-    PRODUCTION_MAX_CONTINUATIONS
-  );
-  // The app no longer imposes the old 1200-token/zero-continuation production
-  // cap. Keep a generous safety ceiling so a malformed provider response cannot
-  // create an endless continuation loop.
+  // Automatic continuation is intentionally disabled. A single model request
+  // is easier to reason about and avoids multiplying latency and API usage.
   const maxCompletionTokens = isHostedProduction()
     ? Math.max(configuredCompletionTokens, PRODUCTION_MIN_COMPLETION_TOKENS)
     : configuredCompletionTokens;
-  const maxContinuations = isHostedProduction()
-    ? Math.max(configuredContinuations, PRODUCTION_MIN_CONTINUATIONS)
-    : configuredContinuations;
+  const maxContinuations = DEFAULT_MAX_CONTINUATIONS;
   const upstreamController = new AbortController();
   const upstreamTimeoutMs = readBoundedInteger(
     process.env.CHAT_UPSTREAM_TIMEOUT_MS,
