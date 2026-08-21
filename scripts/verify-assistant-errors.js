@@ -18,7 +18,7 @@ assert.strictEqual(
   'Request-error fix must invalidate the deployed assistant script cache'
 );
 assert.strictEqual(
-  (html.match(/assistant-sse-thinking-status-1/g) || []).length,
+  (html.match(/assistant-sse-thinking-status-2/g) || []).length,
   1,
   'SSE thinking-status fix must invalidate the deployed assistant script cache'
 );

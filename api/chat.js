@@ -6,6 +6,18 @@ const PORTFOLIO_LINK = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX
 const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
 const MAX_USER_MESSAGE_LENGTH = 800;
 const LONG_MESSAGE_STATUS_THRESHOLD = 240;
+const THINKING_STATUS_INTERVAL_MS = 3200;
+const SHORT_MESSAGE_STATUS_MESSAGES = Object.freeze([
+  '正在整理回答…',
+  '正在核对相关资料…',
+  '正在组织表达…'
+]);
+const LONG_MESSAGE_STATUS_MESSAGES = Object.freeze([
+  '正在分析长问题…',
+  '正在梳理作品与经历…',
+  '正在匹配招聘视角…',
+  '正在组织完整回答…'
+]);
 const DEFAULT_MAX_COMPLETION_TOKENS = 1200;
 const DEFAULT_MAX_CONTINUATIONS = 0;
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 45000;
@@ -166,12 +178,19 @@ module.exports = async function handler(req, res) {
 
   let answer = '';
   let responseStarted = false;
+  let thinkingStatusTimer = null;
 
   try {
     let requestMessages = messages;
     let streamResult = { answer: '', finishReason: null, sawDone: false, sawCompletionMarker: false };
     let continuationWasRequired = false;
     let lastContinuationHadContent = true;
+
+    function stopThinkingStatusLoop() {
+      if (!thinkingStatusTimer) return;
+      clearInterval(thinkingStatusTimer);
+      thinkingStatusTimer = null;
+    }
 
     for (let attempt = 0; attempt <= maxContinuations; attempt += 1) {
       const upstream = await fetch(`${apiBase}/chat/completions`, {
@@ -209,16 +228,27 @@ module.exports = async function handler(req, res) {
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('X-Accel-Buffering', 'no');
         if (typeof res.flushHeaders === 'function') res.flushHeaders();
-        writeStreamEvent(res, 'status', {
-          phase: 'thinking',
-          message: userMessage.length >= LONG_MESSAGE_STATUS_THRESHOLD
-            ? '正在分析长问题…'
-            : '正在整理回答…'
-        });
+        const thinkingStatusMessages = getThinkingStatusMessages(userMessage.length);
+        let thinkingStatusIndex = 0;
+        const emitThinkingStatus = function () {
+          if (res.destroyed || res.writableEnded) {
+            stopThinkingStatusLoop();
+            return;
+          }
+          writeStreamEvent(res, 'status', {
+            phase: 'thinking',
+            message: thinkingStatusMessages[thinkingStatusIndex]
+          });
+        };
+        emitThinkingStatus();
+        thinkingStatusTimer = setInterval(function () {
+          thinkingStatusIndex = (thinkingStatusIndex + 1) % thinkingStatusMessages.length;
+          emitThinkingStatus();
+        }, THINKING_STATUS_INTERVAL_MS);
       }
 
       try {
-        streamResult = await streamModelAnswer(upstream, res);
+        streamResult = await streamModelAnswer(upstream, res, stopThinkingStatusLoop);
       } catch (error) {
         if (error && error.partialAnswer) {
           answer = attempt > 0
@@ -301,12 +331,13 @@ module.exports = async function handler(req, res) {
       res.status(timedOut ? 504 : 502).json(failure);
     }
   } finally {
+    if (thinkingStatusTimer) clearInterval(thinkingStatusTimer);
     clearTimeout(upstreamTimeout);
     res.removeListener('close', abortUpstream);
   }
 };
 
-async function streamModelAnswer(upstream, res) {
+async function streamModelAnswer(upstream, res, onFirstContent) {
   if (!upstream.body || typeof upstream.body.getReader !== 'function') {
     return { answer: '', finishReason: null, sawDone: false, sawCompletionMarker: false };
   }
@@ -350,6 +381,7 @@ async function streamModelAnswer(upstream, res) {
     const delta = choice ? choice.delta : null;
     const content = delta && typeof delta.content === 'string' ? delta.content : '';
     if (!content) return;
+    if (typeof onFirstContent === 'function') onFirstContent();
     answer += content;
     if (answer.includes(COMPLETION_MARKER)) sawCompletionMarker = true;
     writeStreamEvent(res, 'delta', { delta: content });
@@ -481,6 +513,8 @@ module.exports.isLikelyIncompleteAnswer = isLikelyIncompleteAnswer;
 module.exports.mergeContinuationAnswer = mergeContinuationAnswer;
 module.exports.MAX_USER_MESSAGE_LENGTH = MAX_USER_MESSAGE_LENGTH;
 module.exports.LONG_MESSAGE_STATUS_THRESHOLD = LONG_MESSAGE_STATUS_THRESHOLD;
+module.exports.THINKING_STATUS_INTERVAL_MS = THINKING_STATUS_INTERVAL_MS;
+module.exports.getThinkingStatusMessages = getThinkingStatusMessages;
 module.exports.getUpstreamFailurePayload = getUpstreamFailurePayload;
 module.exports.DEFAULT_UPSTREAM_TIMEOUT_MS = DEFAULT_UPSTREAM_TIMEOUT_MS;
 
@@ -544,6 +578,12 @@ function getUpstreamFailurePayload(timedOut) {
       code: 'AI_SERVICE_UNAVAILABLE',
       message: 'AI 服务暂时不可用，请稍后再试。'
     };
+}
+
+function getThinkingStatusMessages(messageLength) {
+  return messageLength >= LONG_MESSAGE_STATUS_THRESHOLD
+    ? LONG_MESSAGE_STATUS_MESSAGES
+    : SHORT_MESSAGE_STATUS_MESSAGES;
 }
 
 function readBoundedInteger(value, fallback, minimum, maximum) {

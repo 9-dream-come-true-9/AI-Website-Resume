@@ -190,6 +190,18 @@ async function runHandler(message, ip, upstreams, history) {
     assert.strictEqual(handler.isLikelyIncompleteAnswer('回答完整收尾。'), false);
     assert.strictEqual(handler.MAX_USER_MESSAGE_LENGTH, 800);
     assert.strictEqual(handler.LONG_MESSAGE_STATUS_THRESHOLD, 240);
+    assert.strictEqual(handler.THINKING_STATUS_INTERVAL_MS, 3200);
+    assert.deepStrictEqual(handler.getThinkingStatusMessages(239), [
+      '正在整理回答…',
+      '正在核对相关资料…',
+      '正在组织表达…'
+    ]);
+    assert.deepStrictEqual(handler.getThinkingStatusMessages(240), [
+      '正在分析长问题…',
+      '正在梳理作品与经历…',
+      '正在匹配招聘视角…',
+      '正在组织完整回答…'
+    ]);
     const tooLong = await runHandler(
       'a'.repeat(handler.MAX_USER_MESSAGE_LENGTH + 1),
       '127.0.0.111',
