@@ -172,7 +172,10 @@ assert.strictEqual(
 assert(chatSource.includes('enable_thinking: false'));
 assert(chatSource.includes('chat_template_kwargs: { enable_thinking: false }'));
 assert(chatSource.includes('getCompletionTokenOptions(apiBase, model, maxCompletionTokens)'));
-assert(chatSource.includes('const maxCompletionTokenLimit = isHostedProduction() ? 1200 : 8000'));
+assert(chatSource.includes('const PRODUCTION_MIN_COMPLETION_TOKENS = 8000'));
+assert(chatSource.includes('const PRODUCTION_MIN_CONTINUATIONS = 4'));
+assert(chatSource.includes('不要因为篇幅主动删减用户要求的部分'));
+assert(!chatSource.includes('自动续写后仍达到服务输出上限；请继续追问尚未展开的部分'));
 assert(chatSource.includes('不得透露底层模型名称、模型版本、模型供应商'));
 assert(chatSource.includes('【回答完毕】'));
 assert(!/const history\s*=|slice\(-8\)/.test(chatSource), 'Backend must not forward conversation history');

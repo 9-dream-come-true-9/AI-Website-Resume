@@ -20,6 +20,10 @@ const LONG_MESSAGE_STATUS_MESSAGES = Object.freeze([
 ]);
 const DEFAULT_MAX_COMPLETION_TOKENS = 1200;
 const DEFAULT_MAX_CONTINUATIONS = 0;
+const PRODUCTION_MIN_COMPLETION_TOKENS = 8000;
+const PRODUCTION_MAX_COMPLETION_TOKENS = 16000;
+const PRODUCTION_MIN_CONTINUATIONS = 4;
+const PRODUCTION_MAX_CONTINUATIONS = 6;
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 45000;
 const COMPLETION_MARKER = '【回答完毕】';
 const CONTINUATION_PROMPT = '上一个回答因输出长度上限中断。请直接从中断处继续，只补全尚未完成的内容，不重复开场、已输出的段落或标题，并确保回答完整收尾。';
@@ -118,22 +122,27 @@ module.exports = async function handler(req, res) {
 
   const apiBase = String(process.env.AI_API_BASE || 'https://api.deepseek.com').replace(/\/+$/, '');
   const model = process.env.AI_MODEL || 'deepseek-chat';
-  // Keep the per-request spend guard even without the distributed protection
-  // layer. Hosted deployments must not inherit an old oversized setting.
-  const maxCompletionTokenLimit = isHostedProduction() ? 1200 : 8000;
-  const maxCompletionTokens = readBoundedInteger(
+  const configuredCompletionTokens = readBoundedInteger(
     process.env.AI_MAX_COMPLETION_TOKENS,
     DEFAULT_MAX_COMPLETION_TOKENS,
     1200,
-    maxCompletionTokenLimit
+    PRODUCTION_MAX_COMPLETION_TOKENS
   );
   const configuredContinuations = readBoundedInteger(
     process.env.AI_MAX_CONTINUATIONS,
     DEFAULT_MAX_CONTINUATIONS,
     0,
-    2
+    PRODUCTION_MAX_CONTINUATIONS
   );
-  const maxContinuations = isHostedProduction() ? 0 : configuredContinuations;
+  // The app no longer imposes the old 1200-token/zero-continuation production
+  // cap. Keep a generous safety ceiling so a malformed provider response cannot
+  // create an endless continuation loop.
+  const maxCompletionTokens = isHostedProduction()
+    ? Math.max(configuredCompletionTokens, PRODUCTION_MIN_COMPLETION_TOKENS)
+    : configuredCompletionTokens;
+  const maxContinuations = isHostedProduction()
+    ? Math.max(configuredContinuations, PRODUCTION_MIN_CONTINUATIONS)
+    : configuredContinuations;
   const upstreamController = new AbortController();
   const upstreamTimeoutMs = readBoundedInteger(
     process.env.CHAT_UPSTREAM_TIMEOUT_MS,
@@ -166,7 +175,7 @@ module.exports = async function handler(req, res) {
         '数量口径要随来源说明：简历中的“20+ 个技能模块”是环内圈实习阶段口径；AI 实验室中的“28 个 Skill”是当前全景清单，且其中包含 BOSS 直聘的 4 个开源 Skill，不能相加成 32 个。',
         '涉及会随时间变化的模型或工具能力对比时，要表述为知识库记录时的个人实测，不要包装成永久结论。',
         '不要输出思考过程、推理过程、分析草稿或 <think> 标签，只输出可以直接展示给用户的最终答案。',
-        `回答必须完整收尾，默认控制在 1200 个汉字以内。若使用编号、表格或承诺介绍多个部分，必须完成每一部分，禁止停在标题、编号、冒号或半句话后。正式答案最后必须单独输出完成标记：${COMPLETION_MARKER}；不要在完成标记后继续输出任何内容。`,
+        `回答必须完整收尾，不要因为篇幅主动删减用户要求的部分。若使用编号、表格或承诺介绍多个部分，必须完成每一部分，禁止停在标题、编号、冒号或半句话后。正式答案最后必须单独输出完成标记：${COMPLETION_MARKER}；不要在完成标记后继续输出任何内容。`,
         `每次提供飞书作品集链接时，必须严格分成下面两段，链接行只能包含链接，不能把提示放进 Markdown 链接文字或 URL：\n飞书作品集：${PORTFOLIO_LINK}\n\n${FEISHU_LOGIN_NOTE}`,
         '如果知识库没有对应信息，就明确说明资料暂未提供，不要猜测或补写。',
         `两份最新来源的完整知识库：\n<knowledge_base>\n${ASSISTANT_KNOWLEDGE_BASE}\n</knowledge_base>`,
@@ -295,12 +304,6 @@ module.exports = async function handler(req, res) {
       && (!continuationWasRequired || lastContinuationHadContent)
       && streamResult.sawCompletionMarker
       && !isLikelyIncompleteAnswer(answer);
-    if (!complete && streamResult.finishReason === 'length') {
-      const incompleteNotice = '\n\n> 回答内容过长，自动续写后仍达到服务输出上限；请继续追问尚未展开的部分。';
-      answer += incompleteNotice;
-      writeStreamEvent(res, 'delta', { delta: incompleteNotice });
-    }
-
     if (!answer) {
       answer = '暂时没有拿到有效回答，可以换个方式问我项目、经历或联系方式。';
       writeStreamEvent(res, 'delta', { delta: answer });
