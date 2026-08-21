@@ -2,6 +2,11 @@
   'use strict';
 
   const root = document.documentElement;
+  if (root.classList.contains('site-ready') || window.__sitePreloaderEmergencyRelease) {
+    root.classList.remove('preloading');
+    root.classList.add('site-ready');
+    return;
+  }
   const loader = document.getElementById('site-preloader');
   const styleLink = document.getElementById('site-styles');
   const fontLink = document.getElementById('site-fonts');
@@ -48,7 +53,9 @@
       })
     : [];
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const fixedDuration = 6400;
+  // Keep the branded preloader short. It is a visual hand-off, not a gate on
+  // network/video readiness; the page remains usable while non-critical media loads.
+  const preloaderDuration = 1400;
   const blessingInterval = 1600;
   const revealDuration = reduceMotion ? 0 : 420;
   const startTime = performance.now();
@@ -99,6 +106,11 @@
   function revealSite(forced) {
     if (loader.hidden) return;
 
+    if (window.__sitePreloaderFallbackTimer) {
+      window.clearTimeout(window.__sitePreloaderFallbackTimer);
+      window.__sitePreloaderFallbackTimer = 0;
+    }
+
     if (progress) progress.setAttribute('aria-valuenow', '100');
     loader.classList.add('is-ready');
     loader.hidden = true;
@@ -146,10 +158,11 @@
     showBlessing((blessingIndex + 1) % blessings.length);
   }, blessingInterval);
 
-  // Keep the preloader visible for exactly 6.4s, including its exit animation.
+  // Keep the preloader visible briefly, including its exit animation. Never
+  // wait for optional assets or background video before revealing the page.
   finishTimer = window.setTimeout(function () {
     finish(false);
-  }, Math.max(0, fixedDuration - revealDuration - (performance.now() - startTime)));
+  }, Math.max(0, preloaderDuration - revealDuration - (performance.now() - startTime)));
 
   function startVideoPreload() {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
