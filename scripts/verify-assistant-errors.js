@@ -18,7 +18,7 @@ assert.strictEqual(
   'Request-error fix must invalidate the deployed assistant script cache'
 );
 assert.strictEqual(
-  (html.match(/assistant-sse-thinking-status-2/g) || []).length,
+  (html.match(/assistant-sse-thinking-status-3/g) || []).length,
   1,
   'SSE thinking-status fix must invalidate the deployed assistant script cache'
 );
@@ -27,6 +27,9 @@ assert(script.includes("typeof errorPayload.message === 'string'"), 'Frontend mu
 assert(script.includes('const partialFailureNotice = hasServiceFailure'), 'Partial streamed failures must remain visibly marked as failures');
 assert(script.includes('eventName === \'status\''), 'Frontend must consume the initial SSE thinking-status event');
 assert(script.includes('function applyStreamStatus(status)'), 'Frontend must render the initial SSE thinking status');
+assert(script.includes('const thinkingStatusIntervalMs = 1400;'), 'Frontend must cycle thinking statuses locally while waiting for the first token');
+assert(script.includes('function advanceLocalThinkingStatus()'), 'Frontend thinking-status cycle is missing');
+assert(script.includes('stopLocalThinkingStatusLoop();'), 'Frontend thinking-status cycle must stop after the first answer delta');
 assert(script.includes("status === 413"), 'Frontend must distinguish oversized messages from service outages');
 assert(script.includes("status === 504"), 'Frontend must distinguish upstream timeouts from generic failures');
 assert(script.includes("问题请控制在 ' + maxQuestionLength + ' 个字符以内。"), 'Client-side oversized-message guard is missing');

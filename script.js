@@ -937,6 +937,19 @@
   const storageKey = 'portfolio-text-agent-history-v9';
   const hiddenStorageKey = 'portfolio-text-agent-hidden-v1';
   const streamRenderIntervalMs = 60;
+  const thinkingStatusIntervalMs = 1400;
+  const longThinkingStatusThreshold = 240;
+  const shortThinkingStatusMessages = [
+    '正在整理回答…',
+    '正在核对相关资料…',
+    '正在组织表达…'
+  ];
+  const longThinkingStatusMessages = [
+    '正在分析长问题…',
+    '正在梳理作品与经历…',
+    '正在匹配招聘视角…',
+    '正在组织完整回答…'
+  ];
   const temporaryAssistantErrors = [
     'AI 服务暂时没有返回有效回答，请稍后再试。',
     'AI 服务暂时没有返回有效回答，请稍后再试',
@@ -2094,7 +2107,12 @@
     activeRequestController = requestController;
     setResponding(true);
     messagesEl.setAttribute('aria-busy', 'true');
-    const thinking = appendMessage('bot', '正在整理回答…', {
+    const thinkingStatusMessages = question.length >= longThinkingStatusThreshold
+      ? longThinkingStatusMessages
+      : shortThinkingStatusMessages;
+    let thinkingStatusIndex = 0;
+    let thinkingStatusTimer = 0;
+    const thinking = appendMessage('bot', thinkingStatusMessages[0], {
       thinking: true,
       skipHistory: true
     });
@@ -2104,6 +2122,21 @@
     let streamedAnswer = '';
     let pendingStreamAnswer = '';
     let streamRenderTimer = 0;
+
+    function stopLocalThinkingStatusLoop() {
+      if (!thinkingStatusTimer) return;
+      window.clearInterval(thinkingStatusTimer);
+      thinkingStatusTimer = 0;
+    }
+
+    function advanceLocalThinkingStatus() {
+      if (isStreaming || requestController.signal.aborted) {
+        stopLocalThinkingStatusLoop();
+        return;
+      }
+      thinkingStatusIndex = (thinkingStatusIndex + 1) % thinkingStatusMessages.length;
+      bubble.textContent = thinkingStatusMessages[thinkingStatusIndex];
+    }
 
     function shouldFollowAssistantStream() {
       return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
@@ -2138,16 +2171,19 @@
     }
 
     function applyStreamStatus(status) {
-      if (isStreaming || requestController.signal.aborted || !status) return;
+      if (isStreaming || requestController.signal.aborted || !status || thinkingStatusTimer) return;
       const message = typeof status.message === 'string' ? status.message.trim() : '';
       if (!message) return;
       const statusBubble = thinking.querySelector('.assistant-bubble');
       if (statusBubble) statusBubble.textContent = message;
     }
 
+    thinkingStatusTimer = window.setInterval(advanceLocalThinkingStatus, thinkingStatusIntervalMs);
+
     try {
       const answer = await callModel(question, function (partialAnswer) {
         if (!partialAnswer || requestController.signal.aborted) return;
+        stopLocalThinkingStatusLoop();
         scheduleStreamRender(partialAnswer);
       }, requestController.signal, applyStreamStatus);
 
@@ -2202,6 +2238,7 @@
         excludeHistoryItemFromContext(currentUserHistoryItem);
       }
     } finally {
+      stopLocalThinkingStatusLoop();
       if (activeRequestController === requestController) {
         activeRequestController = null;
         setResponding(false);
