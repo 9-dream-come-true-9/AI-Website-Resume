@@ -53,6 +53,7 @@
   const revealDuration = reduceMotion ? 0 : 420;
   const startTime = performance.now();
   const progress = loader.querySelector('[role="progressbar"]');
+  const progressFill = loader.querySelector('[data-preloader-progress]');
   const message = loader.querySelector('[data-preloader-message]');
   const dots = Array.from(loader.querySelectorAll('[data-preloader-dot]'));
   const blessings = [
@@ -101,21 +102,28 @@
 
     if (progress) progress.setAttribute('aria-valuenow', '100');
     loader.classList.add('is-ready');
-    loader.hidden = true;
-    root.classList.remove('preloading');
-    root.classList.add('site-ready');
-    if (body) body.removeAttribute('aria-busy');
-    pageContent.forEach(function (element) {
-      element.removeAttribute('inert');
-      if (element.dataset.preloaderAriaHidden === 'true') {
-        element.removeAttribute('aria-hidden');
-        delete element.dataset.preloaderAriaHidden;
-      }
-    });
+    if (progressFill) progressFill.style.transform = 'translate3d(0, 0, 0)';
 
-    document.dispatchEvent(new CustomEvent('site:ready', {
-      detail: { forced: Boolean(forced) }
-    }));
+    // Give the completed 100% state one paint before removing the overlay.
+    // Without this frame the page can become interactive while the final
+    // progress-bar transform is still visually unfinished.
+    window.requestAnimationFrame(function () {
+      loader.hidden = true;
+      root.classList.remove('preloading');
+      root.classList.add('site-ready');
+      if (body) body.removeAttribute('aria-busy');
+      pageContent.forEach(function (element) {
+        element.removeAttribute('inert');
+        if (element.dataset.preloaderAriaHidden === 'true') {
+          element.removeAttribute('aria-hidden');
+          delete element.dataset.preloaderAriaHidden;
+        }
+      });
+
+      document.dispatchEvent(new CustomEvent('site:ready', {
+        detail: { forced: Boolean(forced) }
+      }));
+    });
   }
 
   function finish(forced) {
@@ -141,6 +149,15 @@
 
   applyDeferredStylesheet(styleLink);
   applyDeferredStylesheet(fontLink);
+
+  if (progressFill && !reduceMotion) {
+    // CSS starts animations while the HTML is parsing. Restart it here so the
+    // visual five-second bar uses the same clock as the release timer.
+    progressFill.style.animation = 'none';
+    progressFill.style.transform = 'translate3d(-92%, 0, 0)';
+    void progressFill.offsetWidth;
+    progressFill.style.animation = 'sitePreloaderProgress ' + fixedDuration + 'ms linear forwards';
+  }
 
   blessingTimer = window.setInterval(function () {
     showBlessing((blessingIndex + 1) % blessings.length);

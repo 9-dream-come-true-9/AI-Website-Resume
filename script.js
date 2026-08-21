@@ -35,7 +35,9 @@
     }));
   }
 
-  window.__sitePreloaderFallbackTimer = window.setTimeout(releaseStalledPreloader, 2200);
+  // Keep the emergency path after the normal five-second hand-off. This must
+  // not release a healthy preloader early and leave its progress bar unfinished.
+  window.__sitePreloaderFallbackTimer = window.setTimeout(releaseStalledPreloader, 6500);
 
   function whenSiteReady(callback) {
     if (
