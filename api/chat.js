@@ -4,9 +4,10 @@ const path = require('path');
 const rateBuckets = new Map();
 const PORTFOLIO_LINK = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
 const FEISHU_LOGIN_NOTE = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
+const MAX_USER_MESSAGE_LENGTH = 800;
 const DEFAULT_MAX_COMPLETION_TOKENS = 1200;
 const DEFAULT_MAX_CONTINUATIONS = 0;
-const DEFAULT_UPSTREAM_TIMEOUT_MS = 30000;
+const DEFAULT_UPSTREAM_TIMEOUT_MS = 45000;
 const COMPLETION_MARKER = '【回答完毕】';
 const CONTINUATION_PROMPT = '上一个回答因输出长度上限中断。请直接从中断处继续，只补全尚未完成的内容，不重复开场、已输出的段落或标题，并确保回答完整收尾。';
 const INCOMPLETE_ENDING_PROMPT = '上一个回答的末尾停在标题、编号或未完成的句子。请直接从中断位置补全剩余内容，不重复已有内容，并确保回答完整收尾。';
@@ -41,13 +42,21 @@ module.exports = async function handler(req, res) {
   const rateLimit = checkRateLimit(getClientIp(req));
   if (rateLimit.limited) {
     res.setHeader('Retry-After', String(rateLimit.retryAfter));
-    res.status(429).json({ error: 'Too many requests' });
+    res.status(429).json({
+      error: 'Too many requests',
+      code: 'CLIENT_RATE_LIMITED',
+      message: '当前访问较多或额度已达到上限，请稍后再试。'
+    });
     return;
   }
 
   const userMessage = String((req.body && req.body.message) || '').trim();
   if (!userMessage) {
-    res.status(400).json({ error: 'Missing message' });
+    res.status(400).json({
+      error: 'Missing message',
+      code: 'MISSING_MESSAGE',
+      message: '请输入问题后再发送。'
+    });
     return;
   }
 
@@ -58,13 +67,19 @@ module.exports = async function handler(req, res) {
     bodyChars = 8193;
   }
   if (bodyChars > 8192) {
-    res.status(413).json({ error: 'Request body too large' });
+    res.status(413).json({
+      error: 'Request body too large',
+      code: 'REQUEST_BODY_TOO_LARGE',
+      message: '请求内容过大，请缩短后再发送。'
+    });
     return;
   }
-  if (userMessage.length > 800) {
+  if (userMessage.length > MAX_USER_MESSAGE_LENGTH) {
     res.status(413).json({
       error: 'Message too long',
-      message: '问题请控制在 800 个字符以内。'
+      code: 'MESSAGE_TOO_LONG',
+      maxLength: MAX_USER_MESSAGE_LENGTH,
+      message: `问题请控制在 ${MAX_USER_MESSAGE_LENGTH} 个字符以内。`
     });
     return;
   }
@@ -80,7 +95,11 @@ module.exports = async function handler(req, res) {
 
   const apiKey = process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.MINIMAX_API_KEY || '';
   if (!apiKey) {
-    res.status(503).json({ error: 'AI service is not configured' });
+    res.status(503).json({
+      error: 'AI service is not configured',
+      code: 'AI_SERVICE_NOT_CONFIGURED',
+      message: 'AI 服务暂未配置，请联系站点维护者。'
+    });
     return;
   }
 
@@ -239,10 +258,8 @@ module.exports = async function handler(req, res) {
       && (!continuationWasRequired || lastContinuationHadContent)
       && streamResult.sawCompletionMarker
       && !isLikelyIncompleteAnswer(answer);
-    if (!complete) {
-      const incompleteNotice = streamResult.finishReason === 'length'
-        ? '\n\n> 回答内容过长，自动续写后仍达到服务输出上限；请继续追问尚未展开的部分。'
-        : '\n\n> 回答尚未收到完整结束信号，请重新提问。';
+    if (!complete && streamResult.finishReason === 'length') {
+      const incompleteNotice = '\n\n> 回答内容过长，自动续写后仍达到服务输出上限；请继续追问尚未展开的部分。';
       answer += incompleteNotice;
       writeStreamEvent(res, 'delta', { delta: incompleteNotice });
     }
@@ -264,16 +281,17 @@ module.exports = async function handler(req, res) {
     if (clientClosed || res.destroyed) {
       return;
     }
+    const timedOut = upstreamController.signal.aborted;
+    const failure = getUpstreamFailurePayload(timedOut);
     if (res.headersSent && !res.writableEnded) {
       writeStreamEvent(res, 'error', {
-        error: upstreamController.signal.aborted ? 'AI request timed out' : 'AI service unavailable',
+        ...failure,
+        status: timedOut ? 504 : 502,
         answer: stripModelThinking(answer)
       });
       res.end();
     } else if (!res.headersSent) {
-      res.status(upstreamController.signal.aborted ? 504 : 502).json({
-        error: upstreamController.signal.aborted ? 'AI request timed out' : 'AI service unavailable'
-      });
+      res.status(timedOut ? 504 : 502).json(failure);
     }
   } finally {
     clearTimeout(upstreamTimeout);
@@ -454,6 +472,9 @@ module.exports.getThinkingOptions = getThinkingOptions;
 module.exports.getCompletionTokenOptions = getCompletionTokenOptions;
 module.exports.isLikelyIncompleteAnswer = isLikelyIncompleteAnswer;
 module.exports.mergeContinuationAnswer = mergeContinuationAnswer;
+module.exports.MAX_USER_MESSAGE_LENGTH = MAX_USER_MESSAGE_LENGTH;
+module.exports.getUpstreamFailurePayload = getUpstreamFailurePayload;
+module.exports.DEFAULT_UPSTREAM_TIMEOUT_MS = DEFAULT_UPSTREAM_TIMEOUT_MS;
 
 function getThinkingOptions(apiBase, model) {
   const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
@@ -501,6 +522,20 @@ function mergeContinuationAnswer(existingAnswer, continuationAnswer) {
   const needsListMarkerSpace = /(?:^|\n)\s*(?:\d+[.、)]|[-*+])$/.test(existing)
     && /^[A-Za-z0-9\u3400-\u9FFF]/.test(continuation);
   return existing + (needsListMarkerSpace ? ' ' : '') + continuation;
+}
+
+function getUpstreamFailurePayload(timedOut) {
+  return timedOut
+    ? {
+      error: 'AI request timed out',
+      code: 'AI_REQUEST_TIMEOUT',
+      message: 'AI 服务响应超时，请稍后再试。'
+    }
+    : {
+      error: 'AI service unavailable',
+      code: 'AI_SERVICE_UNAVAILABLE',
+      message: 'AI 服务暂时不可用，请稍后再试。'
+    };
 }
 
 function readBoundedInteger(value, fallback, minimum, maximum) {

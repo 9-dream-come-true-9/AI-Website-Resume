@@ -29,9 +29,13 @@ AI_MAX_CONTINUATIONS=0
 # 单个 Vercel 实例内的基础限流（不是跨实例硬额度）
 CHAT_RATE_LIMIT_WINDOW_MS=60000
 CHAT_RATE_LIMIT_MAX=12
+CHAT_UPSTREAM_TIMEOUT_MS=45000
 ```
 
 `AI_API_KEY` 是必填项。AI 助手会通过 `/api/chat` 调用服务端模型代理，API Key 不会写进 `index.html` 或 `script.js`。当前版本不依赖 Redis、Turnstile 或额外的挑战接口；限流使用进程内内存，在 Vercel 多实例环境下只能作为基础缓冲，不能当作严格的每日预算。
+
+`CHAT_UPSTREAM_TIMEOUT_MS` 用于限制等待模型首尾响应的时间，默认 45 秒；Vercel 函数最大执行时间需保持在至少 60 秒，避免较慢但有效的模型回答被过早判为超时。
+如果 Vercel 环境变量中已经存在旧的 `CHAT_UPSTREAM_TIMEOUT_MS=30000`，请改为 `45000` 或删除后重新部署；显式旧值会覆盖代码默认值。
 
 模型供应商侧请使用公开作品集专用的独立 API Key，并设置日预算、余额告警、TPM/RPM 或并发上限。修改 Vercel 环境变量后必须重新部署才会生效。
 

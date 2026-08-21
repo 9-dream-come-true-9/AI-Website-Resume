@@ -188,6 +188,19 @@ async function runHandler(message, ip, upstreams, history) {
     );
     assert.strictEqual(handler.isLikelyIncompleteAnswer('六、推荐关注点\n1.'), true);
     assert.strictEqual(handler.isLikelyIncompleteAnswer('回答完整收尾。'), false);
+    assert.strictEqual(handler.MAX_USER_MESSAGE_LENGTH, 800);
+    const tooLong = await runHandler(
+      'a'.repeat(handler.MAX_USER_MESSAGE_LENGTH + 1),
+      '127.0.0.111',
+      []
+    );
+    assert.strictEqual(tooLong.response.statusCode, 413, 'Oversized questions must be rejected before the model call');
+    assert.deepStrictEqual(tooLong.response.jsonBody, {
+      error: 'Message too long',
+      code: 'MESSAGE_TOO_LONG',
+      maxLength: 800,
+      message: '问题请控制在 800 个字符以内。'
+    });
 
     const guide = await runHandler(
       guidePrompt,

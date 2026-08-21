@@ -859,6 +859,7 @@
   const promptBtns = Array.from(root.querySelectorAll('[data-assistant-prompt]'));
   const openBtns = Array.from(document.querySelectorAll('[data-assistant-open]'));
   const endpoint = '/api/chat';
+  const maxQuestionLength = 800;
   const portfolioLink = 'https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng';
   const feishuLoginNote = '💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~';
   const assistantGreeting = '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！';
@@ -1544,13 +1545,31 @@
       const listType = getListType(line);
       if (listType) {
         const tag = listType === 'ordered' ? 'ol' : 'ul';
+        const orderedStart = listType === 'ordered'
+          ? Number.parseInt((line.match(/^\s*(\d+)[.)]\s+/) || [])[1], 10)
+          : null;
+        const startAttribute = Number.isFinite(orderedStart)
+          ? ' start="' + orderedStart + '"'
+          : '';
         const items = [];
         while (index < lines.length && getListType(lines[index]) === listType) {
-          items.push(lines[index].replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, ''));
+          const itemLines = [lines[index].replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, '')];
           index += 1;
+          while (
+            index < lines.length &&
+            lines[index].trim() &&
+            !getListType(lines[index]) &&
+            /^\s{2,}\S/.test(lines[index])
+          ) {
+            itemLines.push(lines[index].trim());
+            index += 1;
+          }
+          items.push(itemLines);
         }
-        html.push('<' + tag + '>' + items.map(function (item) {
-          return '<li>' + renderInlineMarkdown(item.trim()) + '</li>';
+        html.push('<' + tag + startAttribute + '>' + items.map(function (item) {
+          return '<li>' + item.map(function (itemLine) {
+            return renderInlineMarkdown(itemLine.trim());
+          }).join('<br>') + '</li>';
         }).join('') + '</' + tag + '>');
         continue;
       }
@@ -1861,7 +1880,12 @@
   }
 
   function getAssistantRequestErrorMessage(error) {
-    if (error && error.status === 429) return '当前访问较多或额度已达到上限，请稍后再试。';
+    const status = Number(error && error.status);
+    if (error && error.userMessage) return error.userMessage;
+    if (status === 429) return '当前访问较多或额度已达到上限，请稍后再试。';
+    if (status === 400) return (error && error.userMessage) || '请输入问题后再发送。';
+    if (status === 413) return (error && error.userMessage) || ('问题请控制在 ' + maxQuestionLength + ' 个字符以内。');
+    if (status === 408 || status === 504) return 'AI 服务响应超时，请稍后再试。';
     return 'AI 服务暂时不可用，请稍后再试。';
   }
 
@@ -1881,7 +1905,10 @@
         const errorPayload = await response.json().catch(function () { return {}; });
         const requestError = new Error(errorPayload.message || errorPayload.error || 'Bad response');
         requestError.status = response.status;
-        requestError.code = errorPayload.error || '';
+        requestError.code = errorPayload.code || errorPayload.error || '';
+        requestError.userMessage = typeof errorPayload.message === 'string'
+          ? errorPayload.message
+          : '';
         throw requestError;
       }
       const contentType = response.headers.get('content-type') || '';
@@ -1893,8 +1920,7 @@
       return answer || 'AI 服务暂时没有返回有效回答，请稍后再试。';
     } catch (error) {
       if (isAbortError(error, signal)) throw error;
-      if (error && error.partialAnswer !== undefined) throw error;
-      return getAssistantRequestErrorMessage(error);
+      throw error;
     }
   }
 
@@ -1918,6 +1944,9 @@
       const data = JSON.parse(dataText);
       if (eventName === 'error') {
         const streamError = new Error(data.error || 'Stream failed');
+        streamError.status = Number(data.status) || (data.code === 'AI_REQUEST_TIMEOUT' ? 504 : 0);
+        streamError.code = data.code || '';
+        streamError.userMessage = typeof data.message === 'string' ? data.message : '';
         streamError.partialAnswer = typeof data.answer === 'string' ? data.answer : answer;
         throw streamError;
       }
@@ -2056,12 +2085,23 @@
         appendMessage('bot', stoppedAnswer + '\n\n> 已停止生成。', { autoScroll: shouldFollowStream });
       } else if (!isAbortError(error, requestController.signal) && (error.partialAnswer || streamedAnswer || pendingStreamAnswer)) {
         const partialAnswer = stripModelThinking(error.partialAnswer || streamedAnswer || pendingStreamAnswer).trim();
-        const interruptionNotice = /回答内容过长|模型服务提前停止|回答传输中断/.test(partialAnswer)
-          ? ''
-          : '\n\n> 回答传输中断，内容可能不完整，请重新提问。';
+        const errorStatus = Number(error && error.status);
+        const hasServiceFailure = Boolean(
+          error && (
+            error.userMessage ||
+            errorStatus === 408 ||
+            errorStatus === 429 ||
+            errorStatus === 502 ||
+            errorStatus === 503 ||
+            errorStatus === 504
+          )
+        );
+        const partialFailureNotice = hasServiceFailure
+          ? '\n\n> ' + getAssistantRequestErrorMessage(error)
+          : '';
         const shouldFollowStream = shouldFollowAssistantStream();
         thinking.remove();
-        appendMessage('bot', partialAnswer + interruptionNotice, {
+        appendMessage('bot', partialAnswer + partialFailureNotice, {
           skipHistory: true,
           autoScroll: shouldFollowStream
         });
@@ -2069,7 +2109,7 @@
       } else if (!isAbortError(error, requestController.signal)) {
         const shouldFollowStream = shouldFollowAssistantStream();
         thinking.remove();
-        appendMessage('bot', 'AI 服务暂时不可用，请稍后再试。', {
+        appendMessage('bot', getAssistantRequestErrorMessage(error), {
           skipHistory: true,
           autoScroll: shouldFollowStream
         });
@@ -2090,6 +2130,14 @@
   async function ask(question) {
     const text = String(question || '').trim();
     if (!text || isResponding) return;
+
+    if (text.length > maxQuestionLength) {
+      appendMessage('bot', '问题请控制在 ' + maxQuestionLength + ' 个字符以内。', {
+        skipHistory: true,
+        autoScroll: true
+      });
+      return;
+    }
 
     appendMessage('user', text);
     const currentUserHistoryItem = history[history.length - 1];
