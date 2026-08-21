@@ -169,11 +169,9 @@ assert.strictEqual(
   false,
   'Portfolio guide preset must call the model instead of returning the fixed portfolio link'
 );
-assert(chatSource.includes('enable_thinking: false'));
-assert(chatSource.includes('chat_template_kwargs: { enable_thinking: false }'));
-assert(chatSource.includes('getCompletionTokenOptions(apiBase, model, maxCompletionTokens)'));
+assert(chatSource.includes("return { thinking: { type: 'disabled' } }"));
+assert(chatSource.includes('getCompletionTokenOptions(maxCompletionTokens)'));
 assert(chatSource.includes('const PRODUCTION_MIN_COMPLETION_TOKENS = 8000'));
-assert(chatSource.includes('const maxContinuations = DEFAULT_MAX_CONTINUATIONS'));
 assert(chatSource.includes('不要因为篇幅主动删减用户要求的部分'));
 assert(!chatSource.includes('自动续写后仍达到服务输出上限；请继续追问尚未展开的部分'));
 assert(chatSource.includes('不得透露底层模型名称、模型版本、模型供应商'));
@@ -184,7 +182,8 @@ assert(chatSource.includes('不得为了“说好”而编造经历、数据、�
 assert(chatSource.includes('不攻击或贬低任何第三方'));
 assert(chatSource.includes('【回答完毕】'));
 assert(!/const history\s*=|slice\(-8\)/.test(chatSource), 'Backend must not forward conversation history');
-assert(chatSource.includes('Automatic continuation is intentionally disabled'));
+assert(!chatSource.includes('CONTINUATION_PROMPT'));
+assert(!chatSource.includes('mergeContinuationAnswer'));
 
 const expectedGreeting = '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！';
 assert(pageScript.includes(expectedGreeting), 'Assistant greeting was not updated from the new knowledge base');

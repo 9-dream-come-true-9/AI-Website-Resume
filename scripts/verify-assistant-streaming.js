@@ -140,7 +140,6 @@ async function runHandler(message, ip, upstreams, history) {
     AI_API_BASE: process.env.AI_API_BASE,
     AI_MODEL: process.env.AI_MODEL,
     AI_MAX_COMPLETION_TOKENS: process.env.AI_MAX_COMPLETION_TOKENS,
-    AI_MAX_CONTINUATIONS: process.env.AI_MAX_CONTINUATIONS,
     CHAT_CLIENT_TOKEN: process.env.CHAT_CLIENT_TOKEN,
     VERCEL: process.env.VERCEL,
     VERCEL_ENV: process.env.VERCEL_ENV,
@@ -148,10 +147,9 @@ async function runHandler(message, ip, upstreams, history) {
   };
 
   process.env.AI_API_KEY = 'test-key-not-a-secret';
-  process.env.AI_API_BASE = 'https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1';
-  process.env.AI_MODEL = 'qwen3.7-plus';
+  process.env.AI_API_BASE = 'https://token-plan-cn.xiaomimimo.com/v1';
+  process.env.AI_MODEL = 'mimo-v2.5';
   delete process.env.AI_MAX_COMPLETION_TOKENS;
-  process.env.AI_MAX_CONTINUATIONS = '1';
   delete process.env.CHAT_CLIENT_TOKEN;
   delete process.env.VERCEL;
   delete process.env.VERCEL_ENV;
@@ -162,25 +160,8 @@ async function runHandler(message, ip, upstreams, history) {
     assert.strictEqual(handler.isPortfolioLinkQuestion(guidePrompt), false);
     assert.strictEqual(handler.isPortfolioLinkQuestion('请给我总作品集的飞书入口'), true);
     assert.deepStrictEqual(
-      handler.getThinkingOptions('https://api.minimaxi.com/v1', 'MiniMax-M3'),
+      handler.getThinkingOptions('https://token-plan-cn.xiaomimimo.com/v1', 'mimo-v2.5'),
       { thinking: { type: 'disabled' } }
-    );
-    assert.deepStrictEqual(
-      handler.getThinkingOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.0-flash'),
-      { chat_template_kwargs: { enable_thinking: false } }
-    );
-    assert.deepStrictEqual(
-      handler.getThinkingOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.5-flash'),
-      { chat_template_kwargs: { enable_thinking: false } }
-    );
-    assert.deepStrictEqual(
-      handler.getThinkingOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.5-pro'),
-      {},
-      'Agnes Pro is a reasoning model and must not receive an undocumented Flash-only switch'
-    );
-    assert.deepStrictEqual(
-      handler.getThinkingOptions('https://api.minimaxi.com/v1', 'MiniMax-M2.7'),
-      {}
     );
     assert.deepStrictEqual(
       handler.getThinkingOptions('https://example.invalid/v1', 'unknown-model'),
@@ -224,24 +205,12 @@ async function runHandler(message, ip, upstreams, history) {
     assert.strictEqual(guide.calls.length, 1, 'Portfolio guide preset must call the model exactly once');
     assert.strictEqual(guide.response.headers['content-type'], 'text/event-stream; charset=utf-8');
     assert.strictEqual(guide.response.jsonBody, null, 'Portfolio guide preset must not use the fixed JSON answer');
-    assert.strictEqual(guide.calls[0].body.enable_thinking, false, 'Portfolio Q&A should avoid unnecessary thinking latency');
-    assert.strictEqual(guide.calls[0].body.max_completion_tokens, 1200);
-    assert.strictEqual(guide.calls[0].body.max_tokens, undefined);
+    assert.deepStrictEqual(guide.calls[0].body.thinking, { type: 'disabled' }, 'Portfolio Q&A should avoid unnecessary thinking latency');
+    assert.strictEqual(guide.calls[0].body.max_tokens, 1200);
+    assert.strictEqual(guide.calls[0].body.max_completion_tokens, undefined);
     assert.strictEqual(
-      handler.getCompletionTokenOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.0-flash', 3000).max_tokens,
+      handler.getCompletionTokenOptions(3000).max_tokens,
       3000
-    );
-    assert.deepStrictEqual(
-      handler.getThinkingOptions('https://api.deepseek.com', 'deepseek-v4-flash'),
-      { thinking: { type: 'disabled' } }
-    );
-    assert.strictEqual(
-      handler.getCompletionTokenOptions('https://api.deepseek.com', 'deepseek-v4-flash', 3000).max_tokens,
-      3000
-    );
-    assert.strictEqual(
-      handler.getCompletionTokenOptions('https://api.deepseek.com', 'deepseek-v4-flash', 3000).max_completion_tokens,
-      undefined
     );
     assert.strictEqual(guide.calls[0].body.messages.length, 2, 'Upstream request must contain only system knowledge and the current question');
     assert(!JSON.stringify(guide.calls[0].body.messages).includes('不能被发送的旧问题'));
@@ -265,45 +234,38 @@ async function runHandler(message, ip, upstreams, history) {
       data: { phase: 'thinking', message: '正在分析长问题…' }
     }, 'Long questions must announce the analysis state over SSE');
 
-    process.env.AI_API_BASE = 'https://apihub.agnes-ai.com/v1';
-    process.env.AI_MODEL = 'agnes-2.0-flash';
-    const agnes = await runHandler(
+    process.env.AI_API_BASE = 'https://token-plan-cn.xiaomimimo.com/v1';
+    process.env.AI_MODEL = 'mimo-v2.5';
+    const mimo = await runHandler(
       '请介绍赵亚杰的 AI 产品能力',
       '127.0.0.109',
-      [normalStream('Agnes 已关闭思考模式。')]
+      [normalStream('MiMo 已关闭思考模式。')]
     );
-    assert.strictEqual(agnes.calls.length, 1);
-    assert.deepStrictEqual(
-      agnes.calls[0].body.chat_template_kwargs,
-      { enable_thinking: false },
-      'Agnes Flash must receive its documented nested thinking switch'
-    );
-    assert.strictEqual(agnes.calls[0].body.enable_thinking, undefined);
-    process.env.AI_API_BASE = 'https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1';
-    process.env.AI_MODEL = 'qwen3.7-plus';
+    assert.strictEqual(mimo.calls.length, 1);
+    assert.deepStrictEqual(mimo.calls[0].body.thinking, { type: 'disabled' });
 
     const lengthStream = createUpstream([
       'data: {"choices":[{"delta":{"content":"第一部分尚未完成"},"finish_reason":null}]}\n\n',
       'data: {"choices":[{"delta":{"content":""},"finish_reason":"length"}]}\n\n',
       'data: [DONE]\n\n'
     ]);
-    const continuation = await runHandler(
+    const lengthLimited = await runHandler(
       '请完整介绍 FDE 与 Skill',
       '127.0.0.102',
       [lengthStream]
     );
-    assert.strictEqual(continuation.calls.length, 1, 'Length-limited output must not trigger an automatic continuation');
-    const continuationDone = continuation.events.find((event) => event.event === 'done');
-    assert(continuationDone, 'Length-limited output must emit a done event');
-    assert.strictEqual(continuationDone.data.answer, '第一部分尚未完成');
+    assert.strictEqual(lengthLimited.calls.length, 1, 'Length-limited output must not trigger a second request');
+    const lengthLimitedDone = lengthLimited.events.find((event) => event.event === 'done');
+    assert(lengthLimitedDone, 'Length-limited output must emit a done event');
+    assert.strictEqual(lengthLimitedDone.data.answer, '第一部分尚未完成');
 
-    const semanticContinuation = await runHandler(
+    const incompleteEnding = await runHandler(
       '测试裸编号收尾',
       '127.0.0.104',
       [normalStream('六、推荐关注点\n', '1.', false), normalStream(' 招聘方可重点关注落地证据', '，回答完整收尾。')]
     );
-    assert.strictEqual(semanticContinuation.calls.length, 1, 'A bare numbered ending must not trigger an automatic continuation');
-    const semanticDone = semanticContinuation.events.find((event) => event.event === 'done');
+    assert.strictEqual(incompleteEnding.calls.length, 1, 'An incomplete ending must not trigger a second request');
+    const semanticDone = incompleteEnding.events.find((event) => event.event === 'done');
     assert(semanticDone);
     assert.strictEqual(semanticDone.data.complete, false);
     assert.strictEqual(
@@ -311,7 +273,7 @@ async function runHandler(message, ip, upstreams, history) {
       '六、推荐关注点\n1.'
     );
 
-    const emptyContinuation = await runHandler(
+    const emptyResponse = await runHandler(
       '测试空续写',
       '127.0.0.105',
       [createUpstream([
@@ -319,9 +281,9 @@ async function runHandler(message, ip, upstreams, history) {
         'data: {"choices":[{"delta":{"content":""},"finish_reason":"length"}]}\n\n'
       ])]
     );
-    const emptyDone = emptyContinuation.events.find((event) => event.event === 'done');
-    assert(emptyDone, 'An empty continuation must still terminate transparently');
-    assert.strictEqual(emptyDone.data.complete, false, 'An empty continuation must not be reported as complete');
+    const emptyDone = emptyResponse.events.find((event) => event.event === 'done');
+    assert(emptyDone, 'An empty response must still terminate transparently');
+    assert.strictEqual(emptyDone.data.complete, false, 'An empty response must not be reported as complete');
 
     const guardedUpstream = normalStream('完成信号后', '立即结束。');
     const guarded = await runHandler(
@@ -345,7 +307,7 @@ async function runHandler(message, ip, upstreams, history) {
       '残缺回答'
     );
 
-    console.log('Assistant model routing, stream completion, and automatic continuation checks passed.');
+    console.log('Assistant MiMo routing, stream completion, and single-request checks passed.');
   } finally {
     global.fetch = originalFetch;
     Object.keys(originalEnv).forEach(function (key) {

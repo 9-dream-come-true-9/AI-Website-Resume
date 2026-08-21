@@ -19,13 +19,10 @@ const LONG_MESSAGE_STATUS_MESSAGES = Object.freeze([
   '正在组织完整回答…'
 ]);
 const DEFAULT_MAX_COMPLETION_TOKENS = 1200;
-const DEFAULT_MAX_CONTINUATIONS = 0;
 const PRODUCTION_MIN_COMPLETION_TOKENS = 8000;
 const PRODUCTION_MAX_COMPLETION_TOKENS = 16000;
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 45000;
 const COMPLETION_MARKER = '【回答完毕】';
-const CONTINUATION_PROMPT = '上一个回答因输出长度上限中断。请直接从中断处继续，只补全尚未完成的内容，不重复开场、已输出的段落或标题，并确保回答完整收尾。';
-const INCOMPLETE_ENDING_PROMPT = '上一个回答的末尾停在标题、编号或未完成的句子。请直接从中断位置补全剩余内容，不重复已有内容，并确保回答完整收尾。';
 const ASSISTANT_KNOWLEDGE_BASE = fs.readFileSync(
   path.join(__dirname, 'assistant-knowledge-base.md'),
   'utf8'
@@ -126,12 +123,9 @@ module.exports = async function handler(req, res) {
     1200,
     PRODUCTION_MAX_COMPLETION_TOKENS
   );
-  // Automatic continuation is intentionally disabled. A single model request
-  // is easier to reason about and avoids multiplying latency and API usage.
   const maxCompletionTokens = isHostedProduction()
     ? Math.max(configuredCompletionTokens, PRODUCTION_MIN_COMPLETION_TOKENS)
     : configuredCompletionTokens;
-  const maxContinuations = DEFAULT_MAX_CONTINUATIONS;
   const upstreamController = new AbortController();
   const upstreamTimeoutMs = readBoundedInteger(
     process.env.CHAT_UPSTREAM_TIMEOUT_MS,
@@ -184,10 +178,7 @@ module.exports = async function handler(req, res) {
   let thinkingStatusTimer = null;
 
   try {
-    let requestMessages = messages;
     let streamResult = { answer: '', finishReason: null, sawDone: false, sawCompletionMarker: false };
-    let continuationWasRequired = false;
-    let lastContinuationHadContent = true;
 
     function stopThinkingStatusLoop() {
       if (!thinkingStatusTimer) return;
@@ -195,8 +186,7 @@ module.exports = async function handler(req, res) {
       thinkingStatusTimer = null;
     }
 
-    for (let attempt = 0; attempt <= maxContinuations; attempt += 1) {
-      const upstream = await fetch(`${apiBase}/chat/completions`, {
+    const upstream = await fetch(`${apiBase}/chat/completions`, {
         method: 'POST',
         signal: upstreamController.signal,
         headers: {
@@ -205,9 +195,9 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           model,
-          messages: requestMessages,
+          messages,
           temperature: 0.35,
-          ...getCompletionTokenOptions(apiBase, model, maxCompletionTokens),
+          ...getCompletionTokenOptions(maxCompletionTokens),
           stream: true,
           stream_options: { include_usage: true },
           ...getThinkingOptions(apiBase, model)
@@ -220,7 +210,7 @@ module.exports = async function handler(req, res) {
           res.status(upstream.status).json({ error: 'AI request failed' });
           return;
         }
-        throw new Error('AI continuation request failed');
+        throw new Error('AI request failed');
       }
 
       if (!responseStarted) {
@@ -250,43 +240,13 @@ module.exports = async function handler(req, res) {
         }, THINKING_STATUS_INTERVAL_MS);
       }
 
-      try {
-        streamResult = await streamModelAnswer(upstream, res, stopThinkingStatusLoop);
-      } catch (error) {
-        if (error && error.partialAnswer) {
-          answer = attempt > 0
-            ? mergeContinuationAnswer(answer, error.partialAnswer)
-            : answer + error.partialAnswer;
-        }
-        throw error;
-      }
-      if (attempt > 0) {
-        lastContinuationHadContent = Boolean(streamResult.answer.trim());
-        answer = mergeContinuationAnswer(answer, streamResult.answer);
-      } else {
-        answer = streamResult.answer;
-      }
-
-      const normalFinish = streamResult.finishReason === 'stop'
-        || (!streamResult.finishReason && streamResult.sawDone);
-      const stoppedMidStructure = normalFinish && isLikelyIncompleteAnswer(answer);
-      const needsContinuation = streamResult.finishReason === 'length'
-        || stoppedMidStructure
-        || !streamResult.sawCompletionMarker;
-      if (!needsContinuation || attempt >= maxContinuations) break;
-
-      continuationWasRequired = true;
-      requestMessages = [
-        ...messages,
-        { role: 'assistant', content: answer },
-        {
-          role: 'user',
-          content: streamResult.finishReason === 'length'
-            ? CONTINUATION_PROMPT
-            : INCOMPLETE_ENDING_PROMPT
-        }
-      ];
+    try {
+      streamResult = await streamModelAnswer(upstream, res, stopThinkingStatusLoop);
+    } catch (error) {
+      if (error && error.partialAnswer) answer = error.partialAnswer;
+      throw error;
     }
+    answer = streamResult.answer;
 
     if (!streamResult.sawDone && !streamResult.finishReason) {
       throw new Error('AI stream ended before a completion signal');
@@ -294,10 +254,7 @@ module.exports = async function handler(req, res) {
 
     const normalFinish = streamResult.finishReason === 'stop'
       || (!streamResult.finishReason && streamResult.sawDone);
-    const complete = normalFinish
-      && (!continuationWasRequired || lastContinuationHadContent)
-      && streamResult.sawCompletionMarker
-      && !isLikelyIncompleteAnswer(answer);
+    const complete = normalFinish && streamResult.sawCompletionMarker && !isLikelyIncompleteAnswer(answer);
     if (!answer) {
       answer = '暂时没有拿到有效回答，可以换个方式问我项目、经历或联系方式。';
       writeStreamEvent(res, 'delta', { delta: answer });
@@ -507,7 +464,6 @@ module.exports.streamModelAnswer = streamModelAnswer;
 module.exports.getThinkingOptions = getThinkingOptions;
 module.exports.getCompletionTokenOptions = getCompletionTokenOptions;
 module.exports.isLikelyIncompleteAnswer = isLikelyIncompleteAnswer;
-module.exports.mergeContinuationAnswer = mergeContinuationAnswer;
 module.exports.MAX_USER_MESSAGE_LENGTH = MAX_USER_MESSAGE_LENGTH;
 module.exports.LONG_MESSAGE_STATUS_THRESHOLD = LONG_MESSAGE_STATUS_THRESHOLD;
 module.exports.THINKING_STATUS_INTERVAL_MS = THINKING_STATUS_INTERVAL_MS;
@@ -516,32 +472,15 @@ module.exports.getUpstreamFailurePayload = getUpstreamFailurePayload;
 module.exports.DEFAULT_UPSTREAM_TIMEOUT_MS = DEFAULT_UPSTREAM_TIMEOUT_MS;
 
 function getThinkingOptions(apiBase, model) {
-  const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
   const modelName = String(model || '').toLowerCase();
-  if (/^deepseek-v4-flash$/.test(modelName)) {
-    return { thinking: { type: 'disabled' } };
-  }
   if (/^mimo-v2\.5(?:-pro)?$/.test(modelName)) {
     return { thinking: { type: 'disabled' } };
-  }
-  if (/^agnes-2\.(?:0|5)-flash$/.test(modelName)) {
-    return { chat_template_kwargs: { enable_thinking: false } };
-  }
-  if (/minimax[-\/]?m3/.test(modelName)) {
-    return { thinking: { type: 'disabled' } };
-  }
-  if (/qwen|dashscope|aliyuncs/.test(provider)) {
-    return { enable_thinking: false };
   }
   return {};
 }
 
-function getCompletionTokenOptions(apiBase, model, maxCompletionTokens) {
-  const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
-  if (/agnes-2\.(?:0|5)-flash|deepseek/.test(provider)) {
-    return { max_tokens: maxCompletionTokens };
-  }
-  return { max_completion_tokens: maxCompletionTokens };
+function getCompletionTokenOptions(maxCompletionTokens) {
+  return { max_tokens: maxCompletionTokens };
 }
 
 function isLikelyIncompleteAnswer(value) {
@@ -552,22 +491,6 @@ function isLikelyIncompleteAnswer(value) {
   return ((text.match(/```/g) || []).length % 2) === 1;
 }
 
-function mergeContinuationAnswer(existingAnswer, continuationAnswer) {
-  const existing = String(existingAnswer || '');
-  const continuation = String(continuationAnswer || '');
-  if (!existing) return continuation;
-  if (!continuation) return existing;
-
-  const maxOverlap = Math.min(240, existing.length, continuation.length);
-  for (let size = maxOverlap; size >= 8; size -= 1) {
-    if (existing.slice(-size) === continuation.slice(0, size)) {
-      return existing + continuation.slice(size);
-    }
-  }
-  const needsListMarkerSpace = /(?:^|\n)\s*(?:\d+[.、)]|[-*+])$/.test(existing)
-    && /^[A-Za-z0-9\u3400-\u9FFF]/.test(continuation);
-  return existing + (needsListMarkerSpace ? ' ' : '') + continuation;
-}
 
 function getUpstreamFailurePayload(timedOut) {
   return timedOut

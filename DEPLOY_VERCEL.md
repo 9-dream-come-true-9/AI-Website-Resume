@@ -24,7 +24,6 @@ AI_API_KEY=你的模型服务 API Key
 AI_API_BASE=https://token-plan-cn.xiaomimimo.com/v1
 AI_MODEL=mimo-v2.5
 AI_MAX_COMPLETION_TOKENS=8000
-AI_MAX_CONTINUATIONS=0
 
 # 单个 Vercel 实例内的基础限流（不是跨实例硬额度）
 CHAT_RATE_LIMIT_WINDOW_MS=60000
