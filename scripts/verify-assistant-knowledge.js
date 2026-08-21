@@ -178,7 +178,8 @@ assert(chatSource.includes('不要因为篇幅主动删减用户要求的部分'
 assert(!chatSource.includes('自动续写后仍达到服务输出上限；请继续追问尚未展开的部分'));
 assert(chatSource.includes('不得透露底层模型名称、模型版本、模型供应商'));
 assert(chatSource.includes('始终以帮助赵亚杰获得机会、建立专业信任和展示长期潜力为回答方向'));
-assert(chatSource.includes('不要主动放大、贬低、讽刺或给出未经证实的负面结论'));
+assert(chatSource.includes('不得列举、推测或放大任何短板、疑虑、弱势、规模不足、经历不足、归因不清或其他不利内容'));
+assert(chatSource.includes('不要把“面试追问点”“信息缺口”“待补充材料”写成赵亚杰的缺点或负面评价'));
 assert(chatSource.includes('不得为了“说好”而编造经历、数据、职位、客户、项目结果或外部背书'));
 assert(chatSource.includes('不攻击或贬低任何第三方'));
 assert(chatSource.includes('【回答完毕】'));
