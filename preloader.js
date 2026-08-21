@@ -48,7 +48,7 @@
       })
     : [];
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const fixedDuration = 6400;
+  const fixedDuration = 5000;
   const blessingInterval = 1600;
   const revealDuration = reduceMotion ? 0 : 420;
   const startTime = performance.now();
@@ -146,7 +146,7 @@
     showBlessing((blessingIndex + 1) % blessings.length);
   }, blessingInterval);
 
-  // Keep the preloader visible for exactly 6.4s, including its exit animation.
+  // Keep the preloader visible for exactly 5s, including its exit animation.
   finishTimer = window.setTimeout(function () {
     finish(false);
   }, Math.max(0, fixedDuration - revealDuration - (performance.now() - startTime)));
