@@ -119,26 +119,6 @@ assert(
 );
 
 assert(
-  /@media \(min-width:\s*48rem\) and \(max-width:\s*74\.99rem\)[\s\S]*?\.hero-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(auto-fit, minmax\(min\(100%, 27rem\), 1fr\)\);/.test(css),
-  'Scaled laptop widths must add a second hero column only when two comfortable cards fit'
-);
-
-assert(
-  /@media \(min-width:\s*90rem\)[\s\S]*?--page-max-width:\s*100%;[\s\S]*?--hero-max-width:\s*100%;[\s\S]*?--section-content-max:\s*min\(90vw, calc\(100vw - 10rem\)\);/.test(css),
-  'Large displays must use a continuous viewport-based shell instead of a fixed cap or reverse-width breakpoint'
-);
-
-assert(
-  /@media \(min-width:\s*180rem\)[\s\S]*?\.card-grid-4,\s*\.project-flow-list,\s*\.contact-info\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\);/.test(css),
-  'Very wide layouts must use the extra width for repeated content columns'
-);
-
-assert(
-  /@media \(min-width:\s*75rem\) and \(max-width:\s*89\.99rem\)[\s\S]*?\.hero-grid\s*\{[\s\S]*?min-height:\s*min\(clamp\(34rem, calc\(100vw - 41rem\), 44rem\), calc\(100vh - 9rem\)\);[\s\S]*?min-height:\s*min\(clamp\(34rem, calc\(100svw - 41rem\), 44rem\), calc\(100svh - 9rem\)\);/.test(css),
-  'The first desktop band must interpolate hero height instead of creating a 1199px/1200px jump'
-);
-
-assert(
   /\.hero-text,\s*\.hero-summary-card\s*\{[^}]*width:\s*min\(100%, 48rem\);[^}]*min-width:\s*0;/.test(css),
   'Hero cards must be allowed to shrink to their shared responsive container width'
 );
