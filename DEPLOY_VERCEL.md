@@ -21,8 +21,8 @@ vercel.json
 
 ```text
 AI_API_KEY=你的模型服务 API Key
-AI_API_BASE=https://apihub.agnes-ai.com/v1
-AI_MODEL=agnes-2.0-flash
+AI_API_BASE=https://api.deepseek.com
+AI_MODEL=deepseek-v4-flash
 AI_MAX_COMPLETION_TOKENS=8000
 AI_MAX_CONTINUATIONS=4
 

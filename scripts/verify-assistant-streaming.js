@@ -231,6 +231,18 @@ async function runHandler(message, ip, upstreams, history) {
       handler.getCompletionTokenOptions('https://apihub.agnes-ai.com/v1', 'agnes-2.0-flash', 3000).max_tokens,
       3000
     );
+    assert.deepStrictEqual(
+      handler.getThinkingOptions('https://api.deepseek.com', 'deepseek-v4-flash'),
+      { thinking: { type: 'disabled' } }
+    );
+    assert.strictEqual(
+      handler.getCompletionTokenOptions('https://api.deepseek.com', 'deepseek-v4-flash', 3000).max_tokens,
+      3000
+    );
+    assert.strictEqual(
+      handler.getCompletionTokenOptions('https://api.deepseek.com', 'deepseek-v4-flash', 3000).max_completion_tokens,
+      undefined
+    );
     assert.strictEqual(guide.calls[0].body.messages.length, 2, 'Upstream request must contain only system knowledge and the current question');
     assert(!JSON.stringify(guide.calls[0].body.messages).includes('不能被发送的旧问题'));
     assert.deepStrictEqual(guide.calls[0].body.stream_options, { include_usage: true });

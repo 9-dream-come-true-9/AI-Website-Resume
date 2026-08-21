@@ -121,7 +121,7 @@ module.exports = async function handler(req, res) {
   }
 
   const apiBase = String(process.env.AI_API_BASE || 'https://api.deepseek.com').replace(/\/+$/, '');
-  const model = process.env.AI_MODEL || 'deepseek-chat';
+  const model = process.env.AI_MODEL || 'deepseek-v4-flash';
   const configuredCompletionTokens = readBoundedInteger(
     process.env.AI_MAX_COMPLETION_TOKENS,
     DEFAULT_MAX_COMPLETION_TOKENS,
@@ -529,6 +529,9 @@ module.exports.DEFAULT_UPSTREAM_TIMEOUT_MS = DEFAULT_UPSTREAM_TIMEOUT_MS;
 function getThinkingOptions(apiBase, model) {
   const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
   const modelName = String(model || '').toLowerCase();
+  if (/^deepseek-v4-flash$/.test(modelName)) {
+    return { thinking: { type: 'disabled' } };
+  }
   if (/^agnes-2\.(?:0|5)-flash$/.test(modelName)) {
     return { chat_template_kwargs: { enable_thinking: false } };
   }
@@ -543,7 +546,7 @@ function getThinkingOptions(apiBase, model) {
 
 function getCompletionTokenOptions(apiBase, model, maxCompletionTokens) {
   const provider = `${apiBase || ''} ${model || ''}`.toLowerCase();
-  if (/agnes-2\.(?:0|5)-flash/.test(provider)) {
+  if (/agnes-2\.(?:0|5)-flash|deepseek/.test(provider)) {
     return { max_tokens: maxCompletionTokens };
   }
   return { max_completion_tokens: maxCompletionTokens };
