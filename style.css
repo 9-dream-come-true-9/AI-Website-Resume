@@ -90,13 +90,13 @@ body {
   z-index: 0;
   background:
     linear-gradient(rgba(231, 244, 245, 0.28), rgba(231, 244, 245, 0.38)),
-    url("assets/background-mountain-lake.webp?v=2") center / cover no-repeat;
+    url("assets/background-mountain-lake.webp?v=3") center / cover no-repeat;
 }
 
 html.dark .site-background {
   background:
     linear-gradient(rgba(16, 37, 44, 0.48), rgba(16, 37, 44, 0.58)),
-    url("assets/background-mountain-lake.webp?v=2") center / cover no-repeat;
+    url("assets/background-mountain-lake.webp?v=3") center / cover no-repeat;
 }
 
 .site-header,
@@ -538,6 +538,14 @@ html.dark .floating-nav .nav-link:hover {
   color: var(--color-accent) !important;
 }
 
+.resume-download-trigger {
+  color: #fff !important;
+  background: var(--color-button-purple) !important;
+  border-color: var(--color-button-purple) !important;
+  box-shadow: 0 10px 24px -14px rgba(144, 100, 245, 0.78), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  text-shadow: none;
+}
+
 .header-action-button:active {
   transform: scale(0.97);
 }
@@ -752,6 +760,14 @@ html.dark .resume-word-suboption {
 
   html.dark .header-action-button:hover {
     background: rgba(17, 19, 29, 0.54) !important;
+  }
+
+  .resume-download-trigger:hover,
+  html.dark .resume-download-trigger:hover {
+    color: #fff !important;
+    background: var(--color-button-purple-hover) !important;
+    border-color: var(--color-button-purple-hover) !important;
+    box-shadow: 0 12px 28px -14px rgba(144, 100, 245, 0.88), inset 0 1px 0 rgba(255, 255, 255, 0.26);
   }
 
   .resume-download-option:hover {
