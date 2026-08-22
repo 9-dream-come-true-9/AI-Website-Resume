@@ -9,6 +9,7 @@
   --color-bg-rgb: 255, 255, 255;
   --color-bg-soft: #f5f5f5;
   --color-bg-elev: #ffffff;
+  --color-page-background: #eee9fa;
   --color-border: #e7e7e7;
   --color-border-strong: #d0d0d0;
   --color-accent: #9064f5;
@@ -38,6 +39,7 @@ html.dark {
   --color-bg-rgb: 17, 19, 29;
   --color-bg-soft: #161a21;
   --color-bg-elev: #1c2030;
+  --color-page-background: #271f38;
   --color-border: #252629;
   --color-border-strong: #353740;
   --color-accent: #a987ff;
@@ -70,7 +72,7 @@ html.dark {
 body {
   font-family: var(--font-body);
   color: var(--color-ink);
-  background-color: transparent;
+  background-color: var(--color-page-background);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-weight: 400;
@@ -80,23 +82,6 @@ body {
   min-width: 0;
   overflow-x: clip;
   position: relative;
-}
-
-.site-background {
-  position: fixed;
-  inset: -2px;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    linear-gradient(rgba(231, 244, 245, 0.28), rgba(231, 244, 245, 0.38)),
-    url("assets/background-mountain-lake.webp?v=3") center / cover no-repeat;
-}
-
-html.dark .site-background {
-  background:
-    linear-gradient(rgba(16, 37, 44, 0.48), rgba(16, 37, 44, 0.58)),
-    url("assets/background-mountain-lake.webp?v=3") center / cover no-repeat;
 }
 
 .site-header,
