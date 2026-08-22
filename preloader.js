@@ -5,7 +5,6 @@
   const loader = document.getElementById('site-preloader');
   const styleLink = document.getElementById('site-styles');
   const fontLink = document.getElementById('site-fonts');
-  const video = document.querySelector('.site-video-bg-media');
   const body = document.body;
 
   function applyDeferredStylesheet(link, onSettled) {
@@ -135,10 +134,6 @@
     window.clearTimeout(messageTimer);
     window.clearTimeout(finishTimer);
 
-    if (video && video.readyState >= 2) {
-      video.classList.add('is-preloaded');
-    }
-
     window.setTimeout(function () {
       loader.classList.add('is-leaving');
     }, reduceMotion ? 0 : 100);
@@ -160,30 +155,4 @@
     finish(false);
   }, Math.max(0, fixedDuration - revealDuration - (performance.now() - startTime)));
 
-  function startVideoPreload() {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (!video || reduceMotion || (connection && connection.saveData)) return;
-
-    video.preload = 'auto';
-    video.setAttribute('preload', 'auto');
-    try {
-      video.load();
-    } catch (error) {
-      // The gradient background remains visible if media loading is unavailable.
-    }
-  }
-
-  if (video && typeof window.requestAnimationFrame === 'function') {
-    window.requestAnimationFrame(function () {
-      window.requestAnimationFrame(function () {
-        if (typeof window.requestIdleCallback === 'function') {
-          window.requestIdleCallback(startVideoPreload, { timeout: 800 });
-        } else {
-          window.setTimeout(startVideoPreload, 320);
-        }
-      });
-    });
-  } else if (video) {
-    window.setTimeout(startVideoPreload, 320);
-  }
 })();

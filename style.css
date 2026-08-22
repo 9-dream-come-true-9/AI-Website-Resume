@@ -82,38 +82,21 @@ body {
   position: relative;
 }
 
-.site-video-bg {
+.site-background {
   position: fixed;
-  inset: 0;
+  inset: -2px;
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
-  background: linear-gradient(180deg, #d8ebee, #b7d9df);
+  background:
+    linear-gradient(rgba(231, 244, 245, 0.28), rgba(231, 244, 245, 0.38)),
+    url("assets/background-mountain-lake.webp?v=2") center / cover no-repeat;
 }
 
-html.dark .site-video-bg {
-  background: linear-gradient(180deg, #173038, #10252c);
-}
-
-.site-video-bg-media {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
-  opacity: 0;
-  transform: translateZ(0);
-  transition: opacity 0.45s ease;
-}
-
-.site-video-bg-media.is-ready {
-  opacity: 1;
-}
-
-.site-video-bg-media.is-preloaded {
-  opacity: 1;
-  transition: none;
+html.dark .site-background {
+  background:
+    linear-gradient(rgba(16, 37, 44, 0.48), rgba(16, 37, 44, 0.58)),
+    url("assets/background-mountain-lake.webp?v=2") center / cover no-repeat;
 }
 
 .site-header,
@@ -940,6 +923,10 @@ html.dark .portfolio-note-bubble {
 }
 
 @media (min-width: 75rem) {
+  .nav-logo {
+    margin-left: calc(var(--hero-outer-rail) + var(--hero-axis-offset));
+  }
+
   .header-actions {
     grid-column: 3;
     grid-row: 1;
@@ -3465,8 +3452,7 @@ html.hero-motion-done .hero-summary-step {
   }
 
   .text-gradient-flow,
-  .text-sheen::after,
-  .site-video-bg-media {
+  .text-sheen::after {
     animation: none !important;
     transition: none !important;
   }

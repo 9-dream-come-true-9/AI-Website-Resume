@@ -51,38 +51,6 @@
     document.addEventListener('site:ready', callback, { once: true });
   }
 
-  function initVideoBackgroundPlayback() {
-    const video = document.querySelector('.site-video-bg-media');
-    if (!video) return;
-
-    video.loop = true;
-    video.muted = true;
-    video.playsInline = true;
-
-    function showVideo() {
-      if (video.classList.contains('is-preloaded')) return;
-      video.classList.add('is-ready');
-    }
-
-    function playVideo() {
-      if (video.readyState >= 2) showVideo();
-      const playResult = video.play();
-      if (playResult && typeof playResult.catch === 'function') {
-        playResult.catch(function () {});
-      }
-    }
-
-    document.addEventListener('visibilitychange', function () {
-      if (!document.hidden && video.paused) playVideo();
-    });
-
-    if (video.readyState >= 2) showVideo();
-    else video.addEventListener('loadeddata', showVideo, { once: true });
-
-    if (video.readyState >= 1) playVideo();
-    else video.addEventListener('loadedmetadata', playVideo, { once: true });
-  }
-
   function initHeroCopySequence() {
     const heroCopySteps = document.querySelectorAll('.hero-copy-step, .hero-summary-step');
     if (!heroCopySteps.length) return;
@@ -771,7 +739,6 @@
   }
 
   function initPageExperience() {
-  initVideoBackgroundPlayback();
   initPortfolioGuidance();
   initResumeDownload();
   initContactCopy();
