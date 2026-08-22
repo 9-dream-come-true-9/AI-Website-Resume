@@ -191,61 +191,74 @@
   }
 
   function initPortfolioGuidance() {
-    const guidanceItems = Array.from(document.querySelectorAll('[data-portfolio-guidance]'));
-    if (!guidanceItems.length) return;
+    const triggers = Array.from(document.querySelectorAll('[data-portfolio-trigger]'));
+    const dialog = document.getElementById('portfolio-access-dialog');
+    const confirmLink = dialog && dialog.querySelector('[data-portfolio-access-confirm]');
+    const cancelButton = dialog && dialog.querySelector('[data-portfolio-access-cancel]');
+    if (!triggers.length || !dialog || dialog.tagName !== 'DIALOG' || !confirmLink || !cancelButton) return;
 
-    let openItem = null;
+    let activeTrigger = null;
 
-    function closeGuidance(item, options) {
-      if (!item) return;
+    function restoreTriggerFocus() {
+      if (activeTrigger && activeTrigger.isConnected) activeTrigger.focus({ preventScroll: true });
+      activeTrigger = null;
+    }
 
-      const trigger = item.querySelector('[data-portfolio-trigger]');
-      const note = item.querySelector('[data-portfolio-note]');
-
-      item.classList.remove('is-open');
-      if (trigger) trigger.setAttribute('aria-expanded', 'false');
-      if (note) note.setAttribute('aria-hidden', 'true');
-      if (openItem === item) openItem = null;
-
-      if (options && options.restoreFocus && trigger) {
-        trigger.focus();
+    function closeDialog(returnValue) {
+      if (typeof dialog.close === 'function' && dialog.open) {
+        dialog.close(returnValue || 'cancel');
+      } else {
+        dialog.removeAttribute('open');
+        dialog.classList.remove('is-keyboard-open');
+        restoreTriggerFocus();
       }
     }
 
-    function openGuidance(item) {
-      if (openItem && openItem !== item) {
-        closeGuidance(openItem);
-      }
-
-      const trigger = item.querySelector('[data-portfolio-trigger]');
-      const note = item.querySelector('[data-portfolio-note]');
-
-      item.classList.add('is-open');
-      if (trigger) trigger.setAttribute('aria-expanded', 'true');
-      if (note) note.setAttribute('aria-hidden', 'false');
-      openItem = item;
-    }
-
-    guidanceItems.forEach(function (item) {
-      const trigger = item.querySelector('[data-portfolio-trigger]');
-      if (!trigger) return;
-
+    triggers.forEach(function (trigger) {
       trigger.addEventListener('click', function (event) {
+        const destination = trigger.getAttribute('href');
+        if (!destination) return;
+
         event.preventDefault();
-        openGuidance(item);
+        activeTrigger = trigger;
+        confirmLink.setAttribute('href', destination);
+        dialog.classList.toggle('is-keyboard-open', event.detail === 0);
+
+        if (typeof dialog.showModal === 'function') {
+          if (!dialog.open) dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+          cancelButton.focus({ preventScroll: true });
+        }
       });
     });
 
-    document.addEventListener('click', function (event) {
-      if (openItem && !openItem.contains(event.target)) {
-        closeGuidance(openItem);
-      }
+    dialog.addEventListener('click', function (event) {
+      if (event.target === dialog) closeDialog('cancel');
     });
 
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && openItem) {
-        closeGuidance(openItem, { restoreFocus: true });
-      }
+    dialog.addEventListener('cancel', function (event) {
+      event.preventDefault();
+      closeDialog('cancel');
+    });
+
+    dialog.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' || !dialog.open) return;
+      event.preventDefault();
+      closeDialog('cancel');
+    });
+
+    dialog.addEventListener('close', function () {
+      dialog.classList.remove('is-keyboard-open');
+      restoreTriggerFocus();
+    });
+
+    cancelButton.addEventListener('click', function () {
+      closeDialog('cancel');
+    });
+
+    confirmLink.addEventListener('click', function () {
+      closeDialog('confirmed');
     });
   }
 

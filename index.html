@@ -289,42 +289,6 @@
       </nav>
 
       <div class="header-actions">
-        <div class="portfolio-guidance portfolio-guidance-header" data-portfolio-guidance>
-          <a
-            class="header-action-button portfolio-link"
-            href="https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng"
-            target="_blank"
-            rel="noreferrer"
-            data-portfolio-trigger
-            aria-expanded="false"
-            aria-controls="portfolio-note-header"
-          >飞书作品集链接</a>
-          <div
-            class="portfolio-note"
-            id="portfolio-note-header"
-            data-portfolio-note
-            role="note"
-            aria-live="polite"
-            aria-hidden="true"
-          >
-            <span class="portfolio-note-arrow" aria-hidden="true">
-              <svg viewBox="0 0 32 20" fill="none">
-                <path d="M2 10h26"></path>
-                <path d="m21 3 7 7-7 7"></path>
-              </svg>
-            </span>
-            <div class="portfolio-note-bubble">
-              <p class="portfolio-note-copy">💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~</p>
-              <a
-                class="portfolio-note-confirm"
-                href="https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-portfolio-confirm
-              >确定</a>
-            </div>
-          </div>
-        </div>
         <div class="resume-download" data-resume-download>
           <button
             class="header-action-button resume-download-trigger"
@@ -453,7 +417,7 @@
               </div>
             </dl>
             <div class="hero-actions">
-              <a href="#projects" class="circle-btn group text-hover-lift hero-copy-step hero-copy-step-7">
+              <a href="#capabilities" class="circle-btn group text-hover-lift hero-copy-step hero-copy-step-7">
                 <span class="circle-btn-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M12 5v14"></path>
@@ -469,39 +433,14 @@
                   target="_blank"
                   rel="noreferrer"
                   data-portfolio-trigger
-                  aria-expanded="false"
-                  aria-controls="portfolio-note-hero"
+                  aria-haspopup="dialog"
+                  aria-controls="portfolio-access-dialog"
                 >
                   <span class="circle-btn-icon" aria-hidden="true">
                     <span class="circle-btn-icon-text">🔗</span>
                   </span>
                   飞书作品集
                 </a>
-                <div
-                  class="portfolio-note"
-                  id="portfolio-note-hero"
-                  data-portfolio-note
-                  role="note"
-                  aria-live="polite"
-                  aria-hidden="true"
-                >
-                  <span class="portfolio-note-arrow" aria-hidden="true">
-                    <svg viewBox="0 0 32 20" fill="none">
-                      <path d="M2 10h26"></path>
-                      <path d="m21 3 7 7-7 7"></path>
-                    </svg>
-                  </span>
-                  <div class="portfolio-note-bubble">
-                    <p class="portfolio-note-copy">💡 温馨提示：作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看~</p>
-                    <a
-                      class="portfolio-note-confirm"
-                      href="https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-portfolio-confirm
-                    >确定</a>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1082,6 +1021,24 @@
       <div class="github-access-actions">
         <button class="github-access-cancel" type="button" data-github-access-cancel>暂不访问</button>
         <a class="github-access-confirm" href="https://github.com/9-dream-come-true-9" target="_blank" rel="noopener noreferrer" data-github-access-confirm>继续访问 GitHub</a>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="experience-detail-dialog capability-detail-dialog portfolio-access-dialog" id="portfolio-access-dialog" aria-labelledby="portfolio-access-dialog-title" aria-describedby="portfolio-access-dialog-copy">
+    <div class="experience-detail-surface">
+      <header class="experience-detail-header">
+        <div>
+          <h2 id="portfolio-access-dialog-title">打开飞书作品集前的小提示</h2>
+        </div>
+        <form method="dialog"><button class="experience-detail-close" type="submit" aria-label="关闭飞书作品集提示">关闭</button></form>
+      </header>
+      <div class="experience-detail-scroll">
+        <p class="capability-detail-intro portfolio-access-copy" id="portfolio-access-dialog-copy"><strong>💡 作品集记录在飞书文档，打开链接前，请先登录您的飞书账号方便查看。</strong></p>
+        <div class="capability-resource-grid portfolio-access-actions">
+          <button class="experience-detail-close portfolio-access-cancel" type="button" data-portfolio-access-cancel>暂不打开</button>
+          <a class="project-repo-link capability-resource-link" href="https://ocnlnp1ta2t2.feishu.cn/drive/folder/Wpm9fd5g4liX9Edxp3pctObYnng" target="_blank" rel="noopener noreferrer" data-portfolio-access-confirm>打开飞书作品集 <span aria-hidden="true">↗</span></a>
+        </div>
       </div>
     </div>
   </dialog>

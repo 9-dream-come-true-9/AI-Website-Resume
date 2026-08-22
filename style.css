@@ -489,9 +489,9 @@ html.dark .floating-nav .nav-link:hover {
 }
 
 .header-actions {
-  width: min(100%, 19rem);
+  width: min(100%, 12rem);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 0.5rem;
   justify-self: center;
@@ -913,7 +913,7 @@ html.dark .portfolio-note-bubble {
 
 @media (min-width: 48rem) {
   .header-actions {
-    width: 19rem;
+    width: 12rem;
   }
 
   .header-action-button {
@@ -933,9 +933,9 @@ html.dark .portfolio-note-bubble {
   }
 }
 
-@media (min-width: 76rem) {
+@media (min-width: 75rem) {
   .header-actions {
-    transform: none;
+    transform: translateX(-3.6rem);
   }
 }
 
@@ -1868,11 +1868,14 @@ html.dark .hero-summary-assistant {
 }
 
 .capability-detail-intro {
-  max-width: 42rem;
+  max-width: none;
   margin: 0 0 1.2rem;
   color: var(--color-ink-soft);
   font-size: 0.96rem;
+  font-weight: 800;
   line-height: 1.75;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .capability-resource-grid {
@@ -1910,6 +1913,24 @@ html.dark .hero-summary-assistant {
   position: absolute;
   top: 1.4rem;
   right: 1.5rem;
+}
+
+.portfolio-access-dialog {
+  width: min(38rem, calc(100vw - 2rem));
+}
+
+.portfolio-access-actions {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  align-items: center;
+}
+
+.portfolio-access-copy {
+  text-align: center;
+}
+
+.portfolio-access-cancel {
+  width: 100%;
+  min-height: 3.05rem;
 }
 
 .experience-detail-dialog.video-quality-dialog {
