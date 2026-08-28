@@ -13,12 +13,18 @@ const triggerTags = Array.from(html.matchAll(/<a\b[^>]*\bdata-github-access-trig
   return match[0];
 });
 
-assert.strictEqual(triggerTags.length, 2, 'Exactly two GitHub access prompts are required');
+assert.strictEqual(triggerTags.length, 3, 'Exactly three GitHub access prompts are required');
 assert(
   triggerTags.some(function (tag) {
     return tag.includes('https://github.com/9-dream-come-true-9/boss-zhipin-desktop-skills');
   }),
   'The project GitHub trigger must keep the repository URL'
+);
+assert(
+  triggerTags.some(function (tag) {
+    return tag.includes('https://github.com/9-dream-come-true-9/wechat-local-reader');
+  }),
+  'The WeChat Local Reader GitHub trigger must keep the repository URL'
 );
 assert(
   triggerTags.some(function (tag) {

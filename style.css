@@ -2080,6 +2080,10 @@ html.dark .hero-summary-assistant {
   box-shadow: 0 10px 28px -24px rgba(54, 37, 95, 0.55);
 }
 
+.project-case-study + .project-case-study {
+  margin-top: clamp(1rem, 2vw, 1.4rem);
+}
+
 html.dark .project-case-study {
   box-shadow: 0 10px 28px -24px rgba(0, 0, 0, 0.7);
 }

@@ -36,6 +36,18 @@ assert.strictEqual(
   'Structured resume knowledge must remain complete'
 );
 
+for (const currentProjectFact of [
+  '当前共有 2 个个人开源 Agent Skill 项目',
+  '个人微信本地聊天记录读取器',
+  '查询联系人或群聊会话',
+  '按时间筛选聊天记录',
+  'https://github.com/9-dream-come-true-9/wechat-local-reader'
+]) {
+  assert(knowledge.includes(currentProjectFact), `Current project supplement is missing fact: ${currentProjectFact}`);
+}
+assert(chatSource.includes('个人开源项目有 2 个'));
+assert(chatSource.includes('个人微信本地聊天记录读取器是此后新开源的独立项目'));
+
 assert(navigation.includes('AI实验室_Agent导航说明255.md'));
 assert(navigation.includes('0fa43deec9b93223a0658e926cb8811c600af1300fcbff8fce5542a900f52983'));
 assert(navigation.includes('155 行，42 个带链接条目，已读取至 EOF'));
