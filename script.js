@@ -2279,6 +2279,17 @@
     setOpen(false);
   });
 
+  document.addEventListener('click', function (event) {
+    if (!root.classList.contains('is-open')) return;
+
+    const target = event.target;
+    if (!(target instanceof Node) || panel.contains(target)) return;
+    if (toggleBtn.contains(target)) return;
+    if (openBtns.some(function (button) { return button.contains(target); })) return;
+
+    setOpen(false);
+  });
+
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && root.classList.contains('is-open')) {
       setOpen(false);
