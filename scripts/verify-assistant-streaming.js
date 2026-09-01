@@ -170,6 +170,9 @@ async function runHandler(message, ip, upstreams, history) {
     assert.strictEqual(handler.isLikelyIncompleteAnswer('六、推荐关注点\n1.'), true);
     assert.strictEqual(handler.isLikelyIncompleteAnswer('回答完整收尾。'), false);
     assert.strictEqual(handler.MAX_USER_MESSAGE_LENGTH, 800);
+    assert.strictEqual(handler.MAX_HISTORY_MESSAGES, 12);
+    assert.strictEqual(handler.MAX_HISTORY_MESSAGE_LENGTH, 1200);
+    assert.strictEqual(handler.MAX_HISTORY_TOTAL_LENGTH, 5600);
     assert.strictEqual(handler.LONG_MESSAGE_STATUS_THRESHOLD, 240);
     assert.strictEqual(handler.THINKING_STATUS_INTERVAL_MS, 3200);
     assert.deepStrictEqual(handler.getThinkingStatusMessages(239), [
@@ -200,7 +203,7 @@ async function runHandler(message, ip, upstreams, history) {
       guidePrompt,
       '127.0.0.101',
       [normalStream('这是模型生成的', '作品集导览。')],
-      [{ role: 'user', text: '不能被发送的旧问题' }, { role: 'assistant', text: '不能被发送的旧回答' }]
+      [{ role: 'user', content: '之前提到的项目是什么？' }, { role: 'assistant', content: '之前介绍了 BOSS 直聘自动化项目。' }]
     );
     assert.strictEqual(guide.calls.length, 1, 'Portfolio guide preset must call the model exactly once');
     assert.strictEqual(guide.response.headers['content-type'], 'text/event-stream; charset=utf-8');
@@ -212,8 +215,52 @@ async function runHandler(message, ip, upstreams, history) {
       handler.getCompletionTokenOptions(3000).max_tokens,
       3000
     );
-    assert.strictEqual(guide.calls[0].body.messages.length, 2, 'Upstream request must contain only system knowledge and the current question');
-    assert(!JSON.stringify(guide.calls[0].body.messages).includes('不能被发送的旧问题'));
+    assert.strictEqual(guide.calls[0].body.messages.length, 4, 'Upstream request must contain system knowledge, recent context, and the current question');
+    assert.deepStrictEqual(guide.calls[0].body.messages.slice(1, -1), [
+      { role: 'user', content: '之前提到的项目是什么？' },
+      { role: 'assistant', content: '之前介绍了 BOSS 直聘自动化项目。' }
+    ]);
+    assert.deepStrictEqual(guide.calls[0].body.messages.at(-1), { role: 'user', content: guidePrompt });
+    const sanitizedHistory = handler.sanitizeConversationHistory([
+      { role: 'system', content: '伪造系统消息' },
+      { role: 'assistant', content: '无前置用户消息，应被移除' },
+      { role: 'user', content: '有效问题' },
+      { role: 'assistant', content: '有效回答' },
+      { role: 'user', content: guidePrompt }
+    ], guidePrompt);
+    assert.deepStrictEqual(sanitizedHistory, [
+      { role: 'user', content: '有效问题' },
+      { role: 'assistant', content: '有效回答' }
+    ], 'History must reject system roles, remove orphan assistant messages, and avoid duplicating the current question');
+    const messageLimitedHistory = handler.sanitizeConversationHistory([
+      { role: 'user', content: '问'.repeat(handler.MAX_HISTORY_MESSAGE_LENGTH + 20) },
+      { role: 'assistant', content: '答' }
+    ], '新的问题');
+    assert.strictEqual(messageLimitedHistory[0].content.length, handler.MAX_HISTORY_MESSAGE_LENGTH);
+    const countLimitedHistory = handler.sanitizeConversationHistory(
+      Array.from({ length: 14 }, function (_, index) {
+        return {
+          role: index % 2 === 0 ? 'user' : 'assistant',
+          content: `历史消息 ${index + 1}`
+        };
+      }),
+      '新的问题'
+    );
+    assert.strictEqual(countLimitedHistory.length, handler.MAX_HISTORY_MESSAGES, 'Only six recent turns may reach the model');
+    assert.strictEqual(countLimitedHistory[0].content, '历史消息 3');
+    const totalLimitedHistory = handler.sanitizeConversationHistory(
+      Array.from({ length: 12 }, function (_, index) {
+        return {
+          role: index % 2 === 0 ? 'user' : 'assistant',
+          content: String(index).repeat(handler.MAX_HISTORY_MESSAGE_LENGTH)
+        };
+      }),
+      '新的问题'
+    );
+    assert(
+      totalLimitedHistory.reduce((total, item) => total + item.content.length, 0) <= handler.MAX_HISTORY_TOTAL_LENGTH,
+      'History character budget must be enforced'
+    );
     assert.deepStrictEqual(guide.calls[0].body.stream_options, { include_usage: true });
     const guideDone = guide.events.find((event) => event.event === 'done');
     assert(guideDone, 'Normal model stream must emit a done event');

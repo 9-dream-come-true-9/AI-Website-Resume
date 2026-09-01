@@ -916,6 +916,9 @@
   const assistantGreeting = '你好呀，我能从招聘视角介绍赵亚杰的 Vibe Coding、AI 工具敏感度、FDE 落地、AI 产品全链路，以及三段实习和 BOSS 直聘开源 Skill，快来提问吧！';
   const storageKey = 'portfolio-text-agent-history-v9';
   const hiddenStorageKey = 'portfolio-text-agent-hidden-v1';
+  const maxContextMessages = 12;
+  const maxContextMessageLength = 1200;
+  const maxContextCharacters = 5600;
   const streamRenderIntervalMs = 60;
   const thinkingStatusIntervalMs = 1400;
   const longThinkingStatusThreshold = 240;
@@ -1953,7 +1956,37 @@
     return 'AI 服务暂时不可用，请稍后再试。';
   }
 
-  async function callModel(question, onStreamUpdate, signal, onStreamStatus) {
+  function buildConversationContext(currentUserHistoryItem) {
+    const currentIndex = currentUserHistoryItem ? history.indexOf(currentUserHistoryItem) : history.length;
+    const historyEnd = currentIndex >= 0 ? currentIndex : history.length;
+    const candidates = history.slice(0, historyEnd).filter(function (item) {
+      return item && item.includeInContext !== false && (item.role === 'user' || item.role === 'bot') && item.text;
+    });
+    const selected = [];
+    let usedCharacters = 0;
+
+    for (let index = candidates.length - 1; index >= 0 && selected.length < maxContextMessages; index -= 1) {
+      const remainingCharacters = maxContextCharacters - usedCharacters;
+      if (remainingCharacters <= 0) break;
+
+      const item = candidates[index];
+      const content = String(item.text || '')
+        .trim()
+        .slice(0, Math.min(maxContextMessageLength, remainingCharacters));
+      if (!content) continue;
+
+      selected.unshift({
+        role: item.role === 'user' ? 'user' : 'assistant',
+        content: content
+      });
+      usedCharacters += content.length;
+    }
+
+    while (selected.length && selected[0].role !== 'user') selected.shift();
+    return selected;
+  }
+
+  async function callModel(question, conversationHistory, onStreamUpdate, signal, onStreamStatus) {
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -1961,6 +1994,7 @@
         signal: signal,
         body: JSON.stringify({
           message: question,
+          history: conversationHistory,
           mode: 'text'
         })
       });
@@ -2161,7 +2195,8 @@
     thinkingStatusTimer = window.setInterval(advanceLocalThinkingStatus, thinkingStatusIntervalMs);
 
     try {
-      const answer = await callModel(question, function (partialAnswer) {
+      const conversationHistory = buildConversationContext(currentUserHistoryItem);
+      const answer = await callModel(question, conversationHistory, function (partialAnswer) {
         if (!partialAnswer || requestController.signal.aborted) return;
         stopLocalThinkingStatusLoop();
         scheduleStreamRender(partialAnswer);

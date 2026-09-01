@@ -193,7 +193,8 @@ assert(chatSource.includes('不要把“面试追问点”“信息缺口”“�
 assert(chatSource.includes('不得为了“说好”而编造经历、数据、职位、客户、项目结果或外部背书'));
 assert(chatSource.includes('不攻击或贬低任何第三方'));
 assert(chatSource.includes('【回答完毕】'));
-assert(!/const history\s*=|slice\(-8\)/.test(chatSource), 'Backend must not forward conversation history');
+assert(chatSource.includes('sanitizeConversationHistory'), 'Backend must validate conversation history before forwarding it');
+assert(chatSource.includes('历史对话只用于理解连续追问、代词和省略信息'), 'System prompt must limit the authority of conversation history');
 assert(!chatSource.includes('CONTINUATION_PROMPT'));
 assert(!chatSource.includes('mergeContinuationAnswer'));
 
@@ -214,13 +215,14 @@ assert(pageHtml.includes('assistant-prompts-grid-2'), 'style.css cache-buster mu
 assert.strictEqual((pageHtml.match(/assistant-stream-integrity-1/g) || []).length, 3, 'Stream integrity cache token must cover both stylesheet links and script.js');
 assert.strictEqual((pageHtml.match(/assistant-answer-copy-1/g) || []).length, 3, 'Answer copy cache token must cover both stylesheet links and script.js');
 assert.strictEqual((pageHtml.match(/assistant-greeting-no-copy-1/g) || []).length, 3, 'Greeting copy cache token must cover both stylesheet links and script.js');
-assert.strictEqual((pageHtml.match(/assistant-context-isolation-1/g) || []).length, 3, 'Context isolation cache token must cover both stylesheet links and script.js');
+assert.strictEqual((pageHtml.match(/assistant-context-memory-1/g) || []).length, 3, 'Context memory cache token must cover both stylesheet links and script.js');
 assert.strictEqual((pageHtml.match(/answer-completion-marker-1/g) || []).length, 3, 'Completion marker cache token must cover both stylesheet links and script.js');
 assert(pageHtml.includes('AI产品全链路能力'), 'AI product full-link capability title must be updated');
 assert(pageHtml.includes('覆盖需求洞察、原型设计、数据分析与产品文档撰写'), 'AI product full-link capability description must reflect the portfolio');
 assert(pageScript.includes('createAssistantMessageActions(messageState)'));
-assert(!pageScript.includes('history: conversationHistory'), 'Frontend must not send conversation history');
-assert(!pageScript.includes('getContextHistory'), 'Frontend must not construct model context history');
+assert(pageScript.includes('history: conversationHistory'), 'Frontend must send the bounded conversation history');
+assert(pageScript.includes('buildConversationContext(currentUserHistoryItem)'), 'Frontend must construct context from messages before the current question');
+assert(pageScript.includes('maxContextMessages = 12'), 'Frontend context must be limited to six recent turns');
 assert(pageScript.includes('createCopyMessageButton(messageState, true)'));
 assert(pageScript.includes('let receivedDone = false'));
 assert(pageScript.includes("new Error('Stream ended before the done event')"));
