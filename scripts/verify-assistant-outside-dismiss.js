@@ -34,6 +34,18 @@ assert(
   'A valid outside click must close the assistant'
 );
 assert(
+  /saveBtn\.addEventListener\('click', function \(event\) \{[\s\S]*?event\.stopPropagation\(\);/.test(script),
+  'Saving an inline edit must not bubble into the outside-click dismiss handler'
+);
+assert(
+  /cancelBtn\.addEventListener\('click', function \(event\) \{[\s\S]*?event\.stopPropagation\(\);/.test(script),
+  'Cancelling an inline edit must not bubble into the outside-click dismiss handler'
+);
+assert(
+  listener.includes('event.composedPath()') && listener.includes('eventPath.includes(panel)'),
+  'Outside-click handling must remain safe when an edit action re-renders and detaches its target'
+);
+assert(
   html.includes('assistant-outside-dismiss-1'),
   'The assistant script cache token must include the outside-dismiss revision'
 );

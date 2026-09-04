@@ -1448,11 +1448,15 @@
       bubble.textContent = originalText;
     }
 
-    saveBtn.addEventListener('click', function () {
+    saveBtn.addEventListener('click', function (event) {
+      event.stopPropagation();
       finishEdit(textarea.value);
     });
 
-    cancelBtn.addEventListener('click', cancelEdit);
+    cancelBtn.addEventListener('click', function (event) {
+      event.stopPropagation();
+      cancelEdit();
+    });
 
     textarea.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
@@ -2318,7 +2322,8 @@
     if (!root.classList.contains('is-open')) return;
 
     const target = event.target;
-    if (!(target instanceof Node) || panel.contains(target)) return;
+    const eventPath = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    if (eventPath.includes(panel) || !(target instanceof Node) || panel.contains(target)) return;
     if (toggleBtn.contains(target)) return;
     if (openBtns.some(function (button) { return button.contains(target); })) return;
 
